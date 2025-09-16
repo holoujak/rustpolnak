@@ -5,7 +5,11 @@ authors = ["Daniel Trnka <daniel.trnka@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+chrono = { version = "0.4.42", features = ["serde"] }
 dioxus = { version = "0.6.3", features = ["desktop"] }
+reqwest = { version = "0.12.23", features = ["json"] }
+serde = { version = "1.0.225", features = ["derive"] }
+tokio = "1.47.1"
 
 [profile]
 

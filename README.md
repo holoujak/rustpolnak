@@ -25,3 +25,9 @@ $ cargo binstall dioxus-cli
 ```bash
 $ dx serve
 ```
+
+Start testing API server:
+```bash
+$ cd stubs
+$ uv run fastapi dev
+```
