@@ -5,4 +5,5 @@ description = "Dummy API for testing"
 requires-python = ">=3.13"
 dependencies = [
     "fastapi[standard]>=0.116.2",
+    "pyserial>=3.5",
 ]
