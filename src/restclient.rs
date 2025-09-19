@@ -1,9 +1,10 @@
 use chrono::NaiveDateTime;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
+use std::cmp::Ordering;
 
 const DATE_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.f";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct Race {
     pub id: u32,
     pub name: String,
@@ -70,6 +71,23 @@ where
 {
     let s: String = Deserialize::deserialize(deserializer)?;
     NaiveDateTime::parse_from_str(s.trim(), DATE_TIME_FORMAT).map_err(serde::de::Error::custom)
+}
+
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum RaceField {
+    Id,
+    Name,
+    DateOfEvent,
+}
+
+impl Race {
+    pub fn cmp_by(&self, other: &Self, field: RaceField) -> Ordering {
+        match field {
+            RaceField::Id => self.id.cmp(&other.id),
+            RaceField::Name => self.name.cmp(&other.name),
+            RaceField::DateOfEvent => self.date_of_event.cmp(&other.date_of_event),
+        }
+    }
 }
 
 #[derive(Clone)]
