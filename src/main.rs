@@ -3,8 +3,13 @@
 use dioxus::prelude::*;
 
 use crate::restclient::RaceRestAPI;
+use crate::restclient::{Race, RaceField};
+use crate::sort_table::Th;
+use crate::sorter::Sorter;
 
 mod restclient;
+mod sort_table;
+mod sorter;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
@@ -24,14 +29,34 @@ fn App() -> Element {
         api.races().await
     });
 
+    let sorter = use_signal(|| Sorter::<RaceField>::new(RaceField::Id));
+
     rsx! {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
-        "Vyhlal!",
         match &*races.read() {
-            Some(Ok(races)) => rsx!{
-                ul {
-                    for race in races {
-                        li {"{race.name}"}
+            Some(Ok(races)) => {
+                let mut sorted = (*races).clone();
+                let field = sorter.read().active;
+                sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Race::cmp_by));
+
+                rsx! {
+                    table {
+                        thead {
+                            tr {
+                                Th { sorter, field: RaceField::Id, "ID" }
+                                Th { sorter, field: RaceField::Name, "Name" }
+                                Th { sorter, field: RaceField::DateOfEvent, "Date" }
+                            }
+                        }
+                        tbody {
+                            for race in sorted.iter() {
+                                tr {
+                                    td { "{race.id}" }
+                                    td { "{race.name}" }
+                                    td { "{race.date_of_event}" }
+                                }
+                            }
+                        }
                     }
                 }
             },
