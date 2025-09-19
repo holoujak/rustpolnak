@@ -2797,6 +2797,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "maplit"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e2e65a1a2e43cfcb47a895c4c8b10d1f4a61097f9f254f183aee60cad9c651d"
+
+[[package]]
 name = "markup5ever"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4005,12 +4011,15 @@ dependencies = [
  "futures",
  "futures-util",
  "log",
+ "maplit",
  "nom",
  "reqwest",
  "serde",
+ "table-rs",
  "tokio",
  "tokio-serial",
  "tokio-util",
+ "web-sys",
 ]
 
 [[package]]
@@ -4569,6 +4578,16 @@ dependencies = [
  "pkg-config",
  "toml",
  "version-compare",
+]
+
+[[package]]
+name = "table-rs"
+version = "0.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6604e6925110ac9c000b079efd36e3d31e548dd5b21528dcf5afc06570ca966"
+dependencies = [
+ "dioxus",
+ "web-sys",
 ]
 
 [[package]]
