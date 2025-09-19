@@ -31,3 +31,15 @@ Start testing API server:
 $ cd stubs
 $ uv run fastapi dev
 ```
+
+Run `rfid.py` to create virtual serials `stubs/dev/rfid0` and `stubs/dev/rfid1` and begin publishing TAGs:
+```bash
+$ cd stubs
+$ uv run rfid.py
+```
+
+Run `rfiddump` to test RFID readers:
+```
+$ cargo run --bin rfiddump
+$ cargo run --bin rfiddump /dev/ttyUSB0 /dev/ttyUSB1
+```
