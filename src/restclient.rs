@@ -3,7 +3,7 @@ use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializ
 
 const DATE_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.f";
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct Race {
     pub id: u32,
     pub name: String,
@@ -70,6 +70,33 @@ where
 {
     let s: String = Deserialize::deserialize(deserializer)?;
     NaiveDateTime::parse_from_str(s.trim(), DATE_TIME_FORMAT).map_err(serde::de::Error::custom)
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum RaceSortKey {
+    Id,
+    Name,
+    Date,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+pub enum SortOrder {
+    Asc,
+    Desc,
+}
+
+pub fn sort_races(races: &mut [Race], key: RaceSortKey, order: SortOrder) {
+    races.sort_by(|a, b| {
+        let ord = match key {
+            RaceSortKey::Id => a.id.cmp(&b.id),
+            RaceSortKey::Name => a.name.cmp(&b.name),
+            RaceSortKey::Date => a.date_of_event.cmp(&b.date_of_event),
+        };
+        match order {
+            SortOrder::Asc => ord,
+            SortOrder::Desc => ord.reverse(),
+        }
+    });
 }
 
 #[derive(Clone)]
