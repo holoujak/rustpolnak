@@ -4015,7 +4015,6 @@ dependencies = [
  "nom",
  "reqwest",
  "serde",
- "table-rs",
  "tokio",
  "tokio-serial",
  "tokio-util",
@@ -4578,16 +4577,6 @@ dependencies = [
  "pkg-config",
  "toml",
  "version-compare",
-]
-
-[[package]]
-name = "table-rs"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6604e6925110ac9c000b079efd36e3d31e548dd5b21528dcf5afc06570ca966"
-dependencies = [
- "dioxus",
- "web-sys",
 ]
 
 [[package]]
