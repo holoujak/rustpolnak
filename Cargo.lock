@@ -4011,7 +4011,6 @@ dependencies = [
  "tokio",
  "tokio-serial",
  "tokio-util",
- "web-sys",
 ]
 
 [[package]]

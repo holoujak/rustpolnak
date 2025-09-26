@@ -20,7 +20,6 @@ serde = { version = "1.0.225", features = ["derive"] }
 tokio = "1.47.1"
 tokio-serial = "5.4.5"
 tokio-util = "0.7.16"
-web-sys = {version = "0.3", features = ["Window", "Location", "History"] }
 
 [profile.wasm-dev]
 inherits = "dev"
