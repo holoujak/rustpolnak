@@ -3,9 +3,13 @@
 use dioxus::prelude::*;
 
 use crate::restclient::RaceRestAPI;
-use crate::restclient::{sort_races, RaceSortKey, SortOrder};
+use crate::restclient::{Race, RaceField};
+use crate::sort_table::Th;
+use crate::sorter::Sorter;
 
 mod restclient;
+mod sort_table;
+mod sorter;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
@@ -25,70 +29,24 @@ fn App() -> Element {
         api.races().await
     });
 
-    let mut sort_key = use_signal(|| RaceSortKey::Id);
-    let mut sort_order = use_signal(|| SortOrder::Asc);
+    let sorter = use_signal(Sorter::<RaceField>::new);
 
     rsx! {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
-        "Vyhlal!",
-
         match &*races.read() {
             Some(Ok(races)) => {
                 let mut sorted = (*races).clone();
-                sort_races(&mut sorted, *sort_key.read(), *sort_order.read());
+                if let Some(field) = sorter.read().active {
+                    sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Race::cmp_by));
+                }
 
                 rsx! {
                     table {
                         thead {
                             tr {
-                                th {
-                                    onclick: move |_| {
-                                        if *sort_key.read() == RaceSortKey::Id {
-                                            let current = *sort_order.read();   // immutable borrow se hned uvolní
-                                            let new_value = match current {
-                                                SortOrder::Asc => SortOrder::Desc,
-                                                SortOrder::Desc => SortOrder::Asc,
-                                            };
-                                            sort_order.set(new_value);          // teď už je volný pro mutable borrow
-                                        } else {
-                                            sort_key.set(RaceSortKey::Id);
-                                            sort_order.set(SortOrder::Asc);
-                                        }
-                                    },
-                                    "Id"
-                                }
-                                th {
-                                    onclick: move |_| {
-                                        if *sort_key.read() == RaceSortKey::Name {
-                                            let current = *sort_order.read();   // immutable borrow se hned uvolní
-                                            let new_value = match current {
-                                                SortOrder::Asc => SortOrder::Desc,
-                                                SortOrder::Desc => SortOrder::Asc,
-                                            };
-                                            sort_order.set(new_value);          // teď už je volný pro mutable borrow
-                                        } else {
-                                            sort_key.set(RaceSortKey::Name);
-                                            sort_order.set(SortOrder::Asc);
-                                        }
-                                    },
-                                    "Name"
-                                }
-                                th {
-                                    onclick: move |_| {
-                                        if *sort_key.read() == RaceSortKey::Date {
-                                            let current = *sort_order.read();   // immutable borrow se hned uvolní
-                                            let new_value = match current {
-                                                SortOrder::Asc => SortOrder::Desc,
-                                                SortOrder::Desc => SortOrder::Asc,
-                                            };
-                                            sort_order.set(new_value);          // teď už je volný pro mutable borrow
-                                        } else {
-                                            sort_key.set(RaceSortKey::Date);
-                                            sort_order.set(SortOrder::Asc);
-                                        }
-                                    },
-                                    "Date"
-                                }
+                                Th { sorter: sorter, field: RaceField::Id, "ID" }
+                                Th { sorter: sorter, field: RaceField::Name, "Name" }
+                                Th { sorter: sorter, field: RaceField::DateOfEvent, "Date" }
                             }
                         }
                         tbody {
