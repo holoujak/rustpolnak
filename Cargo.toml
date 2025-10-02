@@ -16,11 +16,11 @@ futures = "0.3.31"
 futures-util = "0.3.31"
 log = "0.4.28"
 nom = "8.0.0"
-reqwest = { version = "0.12.23", features = ["json"] }
+reqwest = { version = "0.12.23", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0.225", features = ["derive"] }
 tokio = "1.47.1"
 tokio-serial = "5.4.5"
-tokio-util = "0.7.16"
+tokio-util = { version = "0.7.16", features = ["codec"] }
 toml = "0.9.7"
 tracing = "0.1.41"
 
