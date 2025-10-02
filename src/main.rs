@@ -13,6 +13,7 @@ mod sort_table;
 mod sorter;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
+const BOOTSTRAP_CSS: Asset = asset!("/assets/bootstrap.css");
 
 fn appconfig_default() -> Config {
     Config::default().with_window(
@@ -49,6 +50,7 @@ fn App() -> Element {
     let selected_race_id = use_signal(|| Option::<u32>::None);
 
     rsx! {
+        document::Link { rel: "stylesheet", href: BOOTSTRAP_CSS }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         div {
             RacesList{ selected_race_id }
@@ -68,10 +70,10 @@ fn RacesList(selected_race_id: Signal<Option<u32>>) -> Element {
     });
 
     rsx! {
-        "Races:",
         match &*races.read() {
             Some(Ok(races)) => rsx! {
                 select {
+                    class: "form-select mb-1",
                     onchange: move |e| {
                         let val = e.value().parse::<u32>().ok();
                         selected_race_id.set(val);
@@ -107,7 +109,9 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
 
             rsx! {
                 table {
+                    class: "table table-striped table-hover table-sm",
                     thead {
+                        class: "table-dark",
                         tr {
                             Th { sorter, field: RacerField::StartNumber, "Start number" }
                             Th { sorter, field: RacerField::FirstName, "First name" }

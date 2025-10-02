@@ -18,6 +18,7 @@ pub fn Th<F: Copy + Eq + std::hash::Hash + 'static>(props: ThProps<F>) -> Elemen
 
     rsx! {
         th {
+            role: "button",
             onclick: move |_| {
                 sorter.write().toggle(field);
             },
@@ -31,7 +32,7 @@ pub fn Th<F: Copy + Eq + std::hash::Hash + 'static>(props: ThProps<F>) -> Elemen
                         Direction::Desc => rsx!(span { " ↓" }),
                     }
                 } else {
-                    rsx!(span { "" })
+                    rsx!(span { class: "invisible", " ↑"  })
                 }
             }
         }
