@@ -1,11 +1,13 @@
 #![allow(dead_code)]
 
+use chrono::{DateTime, Local, NaiveTime, TimeZone};
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
+use dioxus::logger::tracing::warn;
 use dioxus::prelude::*;
 use std::collections::HashSet;
 
 use crate::restclient::RaceRestAPI;
-use crate::restclient::{Category, Racer, RacerField};
+use crate::restclient::{Category, Racer, RacerField, Track};
 use crate::sort_table::Th;
 use crate::sorter::Sorter;
 
@@ -56,9 +58,9 @@ fn App() -> Element {
         div {
             RacesList{ selected_race_id }
             if let Some(race_id) = *selected_race_id.read() {
+                RaceComponent { race_id }
                 Registrations{ race_id }
             }
-
         }
     }
 }
@@ -89,6 +91,80 @@ fn RacesList(selected_race_id: Signal<Option<u32>>) -> Element {
                 div {"{err:?}"}
             },
             _ => rsx!{}
+        }
+    }
+}
+
+#[component]
+fn TrackStart(track: Track) -> Element {
+    let mut start: Signal<Option<DateTime<Local>>> = use_signal(|| None);
+
+    rsx! {
+         div {
+            class: "input-group",
+            style: "width: 220px",
+            span {
+                class: "input-group-text",
+                style: "width: 80px",
+                "{track.name}"
+            }
+            input {
+                class: "form-control form-control-sm",
+                type: "time",
+                value: match *start.read() {
+                    Some(start) => start.format("%H:%M:%S").to_string(),
+                    None => "".to_string(),
+                },
+                oninput: move |event| {
+                    match NaiveTime::parse_from_str(&event.value(), "%H:%M:%S") {
+                        Ok(time) => {
+                            match Local.from_local_datetime(&(Local::now().date_naive().and_time(time))).single() {
+                                Some(local_dt) => {*start.write() = Some(local_dt);}
+                                None => {warn!{"Failed to create datetime"};}
+                            }
+                        }
+                        Err(err) => {warn!("Failed to parse: {err:?}");}
+                    }
+
+                },
+            }
+            button {
+                class: "btn btn-success",
+                onclick: move |_|  {
+                    *start.write() = Some(Local::now())
+                },
+                "Start"
+            }
+        }
+    }
+}
+
+#[component]
+fn RaceComponent(race_id: ReadOnlySignal<u32>) -> Element {
+    let tracks = use_resource(move || async move {
+        let api = use_context::<RaceRestAPI>();
+        let regs = api.registrations(*race_id.read()).await;
+
+        match regs {
+            Ok(racers) => {
+                let mut tracks = HashSet::new();
+                for track in racers.iter().map(|racer| racer.track.clone()) {
+                    tracks.insert(track);
+                }
+                tracks
+            }
+            Err(_) => HashSet::new(),
+        }
+    });
+
+    rsx! {
+        if let Some(tracks) = &*tracks.read() {
+            div {
+                class: "d-flex flex-row column-gap-1 mb-1",
+                for track in tracks {
+                    TrackStart{track: track.clone()}
+                }
+            }
         }
     }
 }
