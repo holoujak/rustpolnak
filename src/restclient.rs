@@ -35,7 +35,7 @@ pub struct Category {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq, Hash)]
 pub struct Track {
     pub id: u32,
     pub name: String,
