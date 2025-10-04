@@ -2,9 +2,10 @@
 
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
 use dioxus::prelude::*;
+use std::collections::HashSet;
 
 use crate::restclient::RaceRestAPI;
-use crate::restclient::{Racer, RacerField};
+use crate::restclient::{Category, Racer, RacerField};
 use crate::sort_table::Th;
 use crate::sorter::Sorter;
 
@@ -99,11 +100,12 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
         api.registrations(*race_id.read()).await
     });
 
+    let selected_category_id = use_signal(|| Option::<u32>::None);
     let sorter = use_signal(|| Sorter::<RacerField>::new(RacerField::StartNumber));
 
     let x = match &*registrations.read() {
-        Some(Ok(racer)) => {
-            let mut sorted = (*racer).clone();
+        Some(Ok(racers)) => {
+            let mut sorted = (*racers).clone();
             let field = sorter.read().active;
             sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Racer::cmp_by));
 
@@ -117,19 +119,23 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
                             Th { sorter, field: RacerField::FirstName, "First name" }
                             Th { sorter, field: RacerField::LastName, "Last name" }
                             Th { sorter, field: RacerField::Track, "Track" }
-                            th { "Categories" }
+                            th { CategoriesList { racers: racers.clone(), selected_category_id: selected_category_id } }
                         }
                     }
                     tbody {
                         for racer in sorted.iter() {
-                            tr {
-                                td { "{racer.start_number.unwrap_or(0)}" }
-                                td { "{racer.first_name}" }
-                                td { "{racer.last_name}" }
-                                td { "{racer.track.name}" }
-                                td {
-                                    for category in racer.categories.clone() {
-                                        "{category.name}, "
+                            if (*selected_category_id.read()).is_none_or(|cat_id|
+                                racer.categories.iter().any(|c| c.id == cat_id)
+                            ) {
+                                tr {
+                                    td { "{racer.start_number.unwrap_or(0)}" }
+                                    td { "{racer.first_name}" }
+                                    td { "{racer.last_name}" }
+                                    td { "{racer.track.name}" }
+                                    td {
+                                        for category in racer.categories.clone() {
+                                            "{category.name} "
+                                        }
                                     }
                                 }
                             }
@@ -144,4 +150,31 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
         _ => rsx! {},
     };
     x
+}
+
+#[component]
+fn CategoriesList(racers: Vec<Racer>, selected_category_id: Signal<Option<u32>>) -> Element {
+    let mut categories: HashSet<Category> = HashSet::new();
+
+    for racer in racers {
+        for category in racer.categories.into_iter() {
+            categories.insert(category);
+        }
+    }
+
+    let mut sorted_categories: Vec<_> = categories.iter().cloned().collect();
+    sorted_categories.sort_by(|a, b| a.name.cmp(&b.name));
+
+    rsx! {
+        select {
+            onchange: move |e| {
+                let val = e.value().parse::<u32>().ok();
+                selected_category_id.set(val);
+            },
+            option { disabled: false, selected: true, "All" }
+            for c in sorted_categories.iter() {
+                option { value: "{c.id}", "{c.name}" }
+            }
+        }
+    }
 }

@@ -28,7 +28,7 @@ pub struct Racer {
     pub track: Track,
 }
 
-#[derive(Debug, Deserialize, Ord, Eq, Clone, PartialOrd, PartialEq)]
+#[derive(Debug, Deserialize, Ord, Eq, Clone, PartialOrd, PartialEq, Hash)]
 pub struct Category {
     pub id: u32,
     pub name: String,

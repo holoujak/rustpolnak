@@ -60,6 +60,21 @@ def registrations(race_id: int):
             "tagId": None,
             "track": {"id": 25, "name": "10 Km", "description": ""},
         },
+        {
+            "id": 3,
+            "firstName": "Oioioi",
+            "lastName": "Boi",
+            "startNumber": 124,
+            "categories": [
+                {
+                    "id": 93,
+                    "name": "B4",
+                    "description": None,
+                }
+            ],
+            "tagId": None,
+            "track": {"id": 25, "name": "4 Km", "description": ""},
+        },
     ]
 
 
