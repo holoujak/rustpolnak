@@ -40,6 +40,12 @@ $ curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/carg
 $ cargo binstall dioxus-cli
 ```
 
+## Configuration
+Configuration is loaded from the following paths, in order of priority:
+1. command line argument
+2. `rustpolnak.toml` in current working directory
+3. `$XDG_CONFIG_HOME/rustpolnak.toml`
+4. `~/.config/rustpolnak.toml`
 
 ## Build & Run
 

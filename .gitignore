@@ -2,3 +2,4 @@
 .DS_Store
 **/*.rs.bk
 __pycache__
+rustpolnak.toml

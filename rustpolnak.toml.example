@@ -1,0 +1,4 @@
+[api]
+url = "http://localhost:8000"
+username = "user"
+token = "secret"

@@ -12,6 +12,7 @@ use crate::restclient::{Category, Racer, RacerField, Track};
 use crate::sort_table::Th;
 use crate::sorter::Sorter;
 
+mod config;
 mod restclient;
 mod sort_table;
 mod sorter;
@@ -42,14 +43,18 @@ fn appconfig() -> Config {
 
 fn main() {
     dioxus_logger::init(Level::INFO).expect("logger failed to init");
-    LaunchBuilder::new().with_cfg(appconfig()).launch(App);
+    let config = config::load_config();
+    LaunchBuilder::new()
+        .with_cfg(appconfig())
+        .with_context(config)
+        .launch(App);
 }
 
 #[component]
 fn App() -> Element {
+    let config: config::Config = use_context();
     use_context_provider(|| {
-        let server_url: &'static str = "http://localhost:8000";
-        RaceRestAPI::new(server_url, "username", "password")
+        RaceRestAPI::new(&config.api.url, &config.api.username, &config.api.token)
     });
 
     let selected_race_id = use_signal(|| Option::<u32>::None);
