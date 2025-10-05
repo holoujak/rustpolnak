@@ -63,10 +63,11 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: BOOTSTRAP_CSS }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         div {
-            RacesList{ selected_race_id }
+            RacesList { selected_race_id }
             if let Some(race_id) = *selected_race_id.read() {
                 RaceComponent { race_id }
-                Registrations{ race_id }
+                Registrations { race_id }
+                ManualStartNumberInput {}
             }
         }
     }
@@ -257,6 +258,38 @@ fn CategoriesList(racers: Vec<Racer>, selected_category_id: Signal<Option<u32>>)
             option { disabled: false, selected: true, "All" }
             for c in sorted_categories.iter() {
                 option { value: "{c.id}", "{c.name}" }
+            }
+        }
+    }
+}
+
+#[component]
+fn ManualStartNumberInput() -> Element {
+    let mut start_number = use_signal(|| "".to_string());
+
+    rsx! {
+        form {
+            onsubmit: move |event| {
+                event.prevent_default();
+                println!("Enter pressed: {}", start_number.read());
+                // todo: store result
+                start_number.set(String::from(""));
+            },
+            input {
+                class: "form-control",
+                placeholder: "Start number",
+                r#type: "number",
+                value: start_number,
+                onkeydown: move |event| {
+                    let key = event.key().to_string();
+                    if key.chars().all(|c| c.is_ascii_digit()) {
+                        let current_start_number = start_number.read().clone();
+                        start_number.set(current_start_number + &key);
+                    } else if event.key() != Key::Enter {
+                        event.prevent_default();
+                        start_number.set(String::from(""));
+                    }
+                },
             }
         }
     }
