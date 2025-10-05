@@ -80,33 +80,12 @@ pub enum RaceField {
     DateOfEvent,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum RacerField {
-    StartNumber,
-    FirstName,
-    LastName,
-    TagId,
-    Track,
-}
-
 impl Race {
     pub fn cmp_by(&self, other: &Self, field: RaceField) -> Ordering {
         match field {
             RaceField::Id => self.id.cmp(&other.id),
             RaceField::Name => self.name.cmp(&other.name),
             RaceField::DateOfEvent => self.date_of_event.cmp(&other.date_of_event),
-        }
-    }
-}
-
-impl Racer {
-    pub fn cmp_by(&self, other: &Self, field: RacerField) -> Ordering {
-        match field {
-            RacerField::StartNumber => self.start_number.cmp(&other.start_number),
-            RacerField::FirstName => self.first_name.cmp(&other.first_name),
-            RacerField::LastName => self.last_name.cmp(&other.last_name),
-            RacerField::TagId => self.tag_id.cmp(&other.tag_id),
-            RacerField::Track => self.track.name.cmp(&other.track.name),
         }
     }
 }
