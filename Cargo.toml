@@ -21,6 +21,7 @@ serde = { version = "1.0.225", features = ["derive"] }
 tokio = "1.47.1"
 tokio-serial = "5.4.5"
 tokio-util = "0.7.16"
+toml = "0.9.7"
 tracing = "0.1.41"
 
 [profile.wasm-dev]
