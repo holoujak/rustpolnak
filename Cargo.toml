@@ -10,6 +10,7 @@ bytes = "1.10.1"
 chrono = { version = "0.4.42", features = ["serde"] }
 clap = { version = "4.5.47", features = ["derive"] }
 dioxus = { version = "0.6.3", features = ["desktop"] }
+dioxus-logger = "0.6.2"
 env_logger = "0.11.8"
 futures = "0.3.31"
 futures-util = "0.3.31"
@@ -20,6 +21,7 @@ serde = { version = "1.0.225", features = ["derive"] }
 tokio = "1.47.1"
 tokio-serial = "5.4.5"
 tokio-util = "0.7.16"
+tracing = "0.1.41"
 
 [profile.wasm-dev]
 inherits = "dev"

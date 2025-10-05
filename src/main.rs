@@ -5,6 +5,7 @@ use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
 use dioxus::logger::tracing::warn;
 use dioxus::prelude::*;
 use std::collections::HashSet;
+use tracing::Level;
 
 use crate::restclient::RaceRestAPI;
 use crate::restclient::{Category, Racer, RacerField, Track};
@@ -40,6 +41,7 @@ fn appconfig() -> Config {
 }
 
 fn main() {
+    dioxus_logger::init(Level::INFO).expect("logger failed to init");
     LaunchBuilder::new().with_cfg(appconfig()).launch(App);
 }
 
