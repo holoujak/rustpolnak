@@ -3,3 +3,8 @@
 **/*.rs.bk
 __pycache__
 rustpolnak.toml
+
+# Devenv
+.devenv*
+devenv.local.nix
+.devenv.flake.nix
