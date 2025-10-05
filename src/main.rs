@@ -4,15 +4,15 @@ use chrono::{DateTime, Local, NaiveTime, TimeZone};
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
 use dioxus::logger::tracing::warn;
 use dioxus::prelude::*;
-use std::collections::HashSet;
 use tracing::Level;
 
+use crate::race::{Race, RacerField};
 use crate::restclient::RaceRestAPI;
-use crate::restclient::{Category, Racer, RacerField, Track};
 use crate::sort_table::Th;
 use crate::sorter::Sorter;
 
 mod config;
+mod race;
 mod restclient;
 mod sort_table;
 mod sorter;
@@ -57,24 +57,31 @@ fn App() -> Element {
         RaceRestAPI::new(&config.api.url, &config.api.username, &config.api.token)
     });
 
-    let selected_race_id = use_signal(|| Option::<u32>::None);
+    let selected_race =
+        use_signal(|| Option::<Result<race::Race, Box<dyn std::error::Error>>>::None);
 
     rsx! {
         document::Link { rel: "stylesheet", href: BOOTSTRAP_CSS }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         div {
-            RacesList { selected_race_id }
-            if let Some(race_id) = *selected_race_id.read() {
-                RaceComponent { race_id }
-                Registrations { race_id }
-                ManualStartNumberInput {}
+            RacesList { selected_race }
+            match &*selected_race.read() {
+                Some(Ok(race)) => rsx! {
+                    RaceComponent { race: race.clone() }
+                },
+                Some(Err(err)) => rsx! {
+                "{err:#?}"
+                },
+                None => rsx! {},
             }
         }
     }
 }
 
 #[component]
-fn RacesList(selected_race_id: Signal<Option<u32>>) -> Element {
+fn RacesList(
+    selected_race: Signal<Option<Result<race::Race, Box<dyn std::error::Error>>>>,
+) -> Element {
     let races = use_resource(move || async move {
         let api = use_context::<RaceRestAPI>();
         api.races().await
@@ -86,8 +93,11 @@ fn RacesList(selected_race_id: Signal<Option<u32>>) -> Element {
                 select {
                     class: "form-select mb-1",
                     onchange: move |e| {
-                        let val = e.value().parse::<u32>().ok();
-                        selected_race_id.set(val);
+                        let race_id = e.value().parse::<u32>().ok().unwrap();
+                        spawn(async move {
+                            let race = race::Race::load(use_context::<RaceRestAPI>(), race_id).await;
+                            selected_race.set(Some(race));
+                        });
                     },
                     option { disabled: true, selected: true, "Select race" }
                     for race in races.iter() {
@@ -104,12 +114,12 @@ fn RacesList(selected_race_id: Signal<Option<u32>>) -> Element {
 }
 
 #[component]
-fn TrackStart(track: Track) -> Element {
+fn TrackStart(track: String) -> Element {
     let mut start: Signal<Option<DateTime<Local>>> = use_signal(|| None);
 
     rsx! {
         div { class: "input-group", style: "width: 220px",
-            span { class: "input-group-text", style: "width: 80px", "{track.name}" }
+            span { class: "input-group-text", style: "width: 80px", "{track}" }
             input {
                 class: "form-control form-control-sm",
                 r#type: "time",
@@ -150,81 +160,56 @@ fn TrackStart(track: Track) -> Element {
 }
 
 #[component]
-fn RaceComponent(race_id: ReadOnlySignal<u32>) -> Element {
-    let tracks = use_resource(move || async move {
-        let api = use_context::<RaceRestAPI>();
-        let regs = api.registrations(*race_id.read()).await;
-
-        match regs {
-            Ok(racers) => {
-                let mut tracks = HashSet::new();
-                for track in racers.iter().map(|racer| racer.track.clone()) {
-                    tracks.insert(track);
-                }
-                tracks
-            }
-            Err(_) => HashSet::new(),
-        }
-    });
-
+fn RaceComponent(race: Race) -> Element {
     rsx! {
-        if let Some(tracks) = &*tracks.read() {
-            div { class: "d-flex flex-row column-gap-1 mb-1",
-                for track in tracks {
-                    TrackStart { track: track.clone() }
-                }
+        div { class: "d-flex flex-row column-gap-1 mb-1",
+            for track in race.clone().tracks {
+                TrackStart { track: track.clone() }
             }
         }
+        Registrations { race: race.clone() }
+        ManualStartNumberInput {}
     }
 }
 
 #[component]
-fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
-    let registrations = use_resource(move || async move {
-        let api = use_context::<RaceRestAPI>();
-        api.registrations(*race_id.read()).await
-    });
-
-    let selected_category_id = use_signal(|| Option::<u32>::None);
+fn Registrations(race: race::Race) -> Element {
+    let selected_category_id = use_signal(|| Option::<String>::None);
     let sorter = use_signal(|| Sorter::<RacerField>::new(RacerField::StartNumber));
 
-    let x = match &*registrations.read() {
-        Some(Ok(racers)) => {
-            let mut sorted = (*racers).clone();
-            let field = sorter.read().active;
-            sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Racer::cmp_by));
+    let mut sorted = race.racers.clone();
+    let field = sorter.read().active;
+    sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, race::Racer::cmp_by));
 
-            rsx! {
-                table { class: "table table-striped table-hover table-sm",
-                    thead { class: "table-dark",
-                        tr {
-                            Th { sorter, field: RacerField::StartNumber, "Start number" }
-                            Th { sorter, field: RacerField::FirstName, "First name" }
-                            Th { sorter, field: RacerField::LastName, "Last name" }
-                            Th { sorter, field: RacerField::Track, "Track" }
-                            th {
-                                CategoriesList {
-                                    racers: racers.clone(),
-                                    selected_category_id,
-                                }
-                            }
+    rsx! {
+        table { class: "table table-striped table-hover table-sm",
+            thead { class: "table-dark",
+                tr {
+                    Th { sorter, field: RacerField::StartNumber, "Start number" }
+                    Th { sorter, field: RacerField::FirstName, "First name" }
+                    Th { sorter, field: RacerField::LastName, "Last name" }
+                    Th { sorter, field: RacerField::Track, "Track" }
+                    th {
+                        CategoriesList {
+                            categories: race.categories,
+                            selected_category_id,
                         }
                     }
-                    tbody {
-                        for racer in sorted.iter() {
-                            if (*selected_category_id.read())
-                                .is_none_or(|cat_id| racer.categories.iter().any(|c| c.id == cat_id))
-                            {
-                                tr {
-                                    td { "{racer.start_number.unwrap_or(0)}" }
-                                    td { "{racer.first_name}" }
-                                    td { "{racer.last_name}" }
-                                    td { "{racer.track.name}" }
-                                    td {
-                                        for category in racer.categories.clone() {
-                                            "{category.name} "
-                                        }
-                                    }
+                }
+            }
+            tbody {
+                for racer in sorted.iter() {
+                    if (selected_category_id.read().clone())
+                        .is_none_or(|cat_id| racer.categories.contains(&cat_id))
+                    {
+                        tr {
+                            td { "{racer.start_number}" }
+                            td { "{racer.first_name}" }
+                            td { "{racer.last_name}" }
+                            td { "{racer.track}" }
+                            td {
+                                for category in racer.categories.clone() {
+                                    "{category} "
                                 }
                             }
                         }
@@ -232,36 +217,27 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
                 }
             }
         }
-        Some(Err(err)) => rsx! {
-            div { "{err:?}" }
-        },
-        _ => rsx! {},
-    };
-    x
+    }
 }
 
 #[component]
-fn CategoriesList(racers: Vec<Racer>, selected_category_id: Signal<Option<u32>>) -> Element {
-    let mut categories: HashSet<Category> = HashSet::new();
-
-    for racer in racers {
-        for category in racer.categories.into_iter() {
-            categories.insert(category);
-        }
-    }
-
-    let mut sorted_categories: Vec<_> = categories.iter().cloned().collect();
-    sorted_categories.sort_by(|a, b| a.name.cmp(&b.name));
+fn CategoriesList(
+    categories: Vec<String>,
+    selected_category_id: Signal<Option<String>>,
+) -> Element {
+    let mut sorted_categories: Vec<_> = categories.to_vec();
+    sorted_categories.sort();
 
     rsx! {
         select {
             onchange: move |e| {
-                let val = e.value().parse::<u32>().ok();
-                selected_category_id.set(val);
+                let val = e.value().parse::<String>().ok();
+                selected_category_id
+                    .set(if val == Some("All".to_string()) { None } else { val });
             },
             option { disabled: false, selected: true, "All" }
             for c in sorted_categories.iter() {
-                option { value: "{c.id}", "{c.name}" }
+                option { value: "{c}", "{c}" }
             }
         }
     }
