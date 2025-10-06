@@ -31,6 +31,11 @@ jobs:
     steps:
     - run: sudo apt update
     - run: sudo apt install libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev libudev-dev libxdo-dev
+    - run: |
+        curl -L "https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu-v0.6.3.tar.gz" -o dx.tar.gz
+        tar -xzf dx.tar.gz
+        sudo mv dx /usr/local/bin/
+        dx --version
     - uses: actions/checkout@v5
     - uses: actions/setup-python@v6
     - uses: pre-commit/action@v3.0.1
