@@ -86,4 +86,12 @@ impl Race {
             tracks,
         })
     }
+
+    pub fn start(&mut self, track: String) {
+        for racer in self.racers.iter_mut() {
+            if racer.track == track {
+                racer.start = Some(Utc::now());
+            }
+        }
+    }
 }
