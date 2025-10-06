@@ -11,4 +11,5 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix develop
-      - run: cargo run
+      - run: cargo build --profile release
+      - run: cargo test --profile release
