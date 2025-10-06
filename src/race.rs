@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use std::cmp::Ordering;
 use std::collections::HashSet;
+use tracing::error;
 
 use crate::restclient::RaceRestAPI;
 
@@ -92,6 +93,19 @@ impl Race {
             if racer.track == track {
                 racer.start = Some(Utc::now());
             }
+        }
+    }
+
+    pub fn finish_start_number(&mut self, start_number: u32) {
+        let racer = self
+            .racers
+            .iter_mut()
+            .find(|r| r.start_number == start_number);
+
+        if let Some(racer) = racer {
+            racer.finish = Some(Utc::now());
+        } else {
+            error!("Racer with starting number {start_number} not found.");
         }
     }
 }
