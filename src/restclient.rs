@@ -24,7 +24,7 @@ pub struct Racer {
     pub start_number: Option<u32>,
     pub categories: Vec<Category>,
     #[serde(rename = "tagId")]
-    pub tag_id: Option<u32>,
+    pub tag_id: Option<String>,
     pub track: Track,
 }
 

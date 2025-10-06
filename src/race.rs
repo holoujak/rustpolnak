@@ -67,7 +67,7 @@ impl Race {
             .into_iter()
             .map(|racer| Racer {
                 start_number: racer.start_number.unwrap_or(0),
-                tag: racer.tag_id.unwrap_or(0).to_string(),
+                tag: racer.tag_id.unwrap_or("".to_string()),
                 first_name: racer.first_name,
                 last_name: racer.last_name,
                 track: racer.track.name,
@@ -106,6 +106,16 @@ impl Race {
             racer.finish = Some(Utc::now());
         } else {
             error!("Racer with starting number {start_number} not found.");
+        }
+    }
+
+    pub fn tag_finished(&mut self, tag: &str) {
+        let racer = self.racers.iter_mut().find(|r| r.tag == tag);
+
+        if let Some(racer) = racer {
+            racer.finish = Some(Utc::now());
+        } else {
+            error!("Racer with tag {tag} not found.");
         }
     }
 }
