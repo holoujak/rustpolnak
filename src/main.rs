@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use chrono::{DateTime, Local, NaiveTime, TimeZone};
+use chrono::{DateTime, Local, NaiveTime, TimeZone, Utc};
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
 use dioxus::logger::tracing::warn;
 use dioxus::prelude::*;
@@ -39,6 +39,16 @@ fn appconfig() -> Config {
     appconfig_default()
         .with_menu(None)
         .with_disable_context_menu(true)
+}
+
+fn format_time(datetime: Option<DateTime<Utc>>) -> String {
+    match datetime {
+        Some(datetime) => datetime
+            .with_timezone(&Local)
+            .format("%H:%M:%S%.3f")
+            .to_string(),
+        None => "".to_string(),
+    }
 }
 
 fn main() {
@@ -189,6 +199,8 @@ fn Registrations(race: race::Race) -> Element {
                     Th { sorter, field: RacerField::FirstName, "First name" }
                     Th { sorter, field: RacerField::LastName, "Last name" }
                     Th { sorter, field: RacerField::Track, "Track" }
+                    th { "Start" }
+                    th { "Finish" }
                     th {
                         CategoriesList {
                             categories: race.categories,
@@ -207,6 +219,8 @@ fn Registrations(race: race::Race) -> Element {
                             td { "{racer.first_name}" }
                             td { "{racer.last_name}" }
                             td { "{racer.track}" }
+                            td { "{format_time(racer.start)}" }
+                            td { "{format_time(racer.finish)}" }
                             td {
                                 for category in racer.categories.clone() {
                                     "{category} "
