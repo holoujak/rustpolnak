@@ -24,15 +24,20 @@ pub fn Th<F: Copy + Eq + std::hash::Hash + 'static>(props: ThProps<F>) -> Elemen
             },
             {props.children}
             {
-                // Optional arrow indicator
                 let s = sorter.read();
                 if s.active == field {
                     match s.direction {
-                        Direction::Asc => rsx!(span { " ↑" }),
-                        Direction::Desc => rsx!(span { " ↓" }),
+                        Direction::Asc => rsx! {
+                            span { " ↑" }
+                        },
+                        Direction::Desc => rsx! {
+                            span { " ↓" }
+                        },
                     }
                 } else {
-                    rsx!(span { class: "invisible", " ↑"  })
+                    rsx! {
+                        span { class: "invisible", " ↑" }
+                    }
                 }
             }
         }

@@ -96,9 +96,9 @@ fn RacesList(selected_race_id: Signal<Option<u32>>) -> Element {
                 }
             },
             Some(Err(err)) => rsx! {
-                div {"{err:?}"}
+                div { "{err:?}" }
             },
-            _ => rsx!{}
+            _ => rsx! {},
         }
     }
 }
@@ -108,17 +108,11 @@ fn TrackStart(track: Track) -> Element {
     let mut start: Signal<Option<DateTime<Local>>> = use_signal(|| None);
 
     rsx! {
-         div {
-            class: "input-group",
-            style: "width: 220px",
-            span {
-                class: "input-group-text",
-                style: "width: 80px",
-                "{track.name}"
-            }
+        div { class: "input-group", style: "width: 220px",
+            span { class: "input-group-text", style: "width: 80px", "{track.name}" }
             input {
                 class: "form-control form-control-sm",
-                type: "time",
+                r#type: "time",
                 value: match *start.read() {
                     Some(start) => start.format("%H:%M:%S").to_string(),
                     None => "".to_string(),
@@ -126,21 +120,29 @@ fn TrackStart(track: Track) -> Element {
                 oninput: move |event| {
                     match NaiveTime::parse_from_str(&event.value(), "%H:%M:%S") {
                         Ok(time) => {
-                            match Local.from_local_datetime(&(Local::now().date_naive().and_time(time))).single() {
-                                Some(local_dt) => {*start.write() = Some(local_dt);}
-                                None => {warn!{"Failed to create datetime"};}
+                            match Local
+                                .from_local_datetime(&(Local::now().date_naive().and_time(time)))
+                                .single()
+                            {
+                                Some(local_dt) => {
+                                    *start.write() = Some(local_dt);
+                                }
+                                None => {
+                                    warn! {
+                                        "Failed to create datetime"
+                                    }
+                                }
                             }
                         }
-                        Err(err) => {warn!("Failed to parse: {err:?}");}
+                        Err(err) => {
+                            warn!("Failed to parse: {err:?}");
+                        }
                     }
-
                 },
             }
             button {
                 class: "btn btn-success",
-                onclick: move |_|  {
-                    *start.write() = Some(Local::now())
-                },
+                onclick: move |_| { *start.write() = Some(Local::now()) },
                 "Start"
             }
         }
@@ -167,10 +169,9 @@ fn RaceComponent(race_id: ReadOnlySignal<u32>) -> Element {
 
     rsx! {
         if let Some(tracks) = &*tracks.read() {
-            div {
-                class: "d-flex flex-row column-gap-1 mb-1",
+            div { class: "d-flex flex-row column-gap-1 mb-1",
                 for track in tracks {
-                    TrackStart{track: track.clone()}
+                    TrackStart { track: track.clone() }
                 }
             }
         }
@@ -194,23 +195,26 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
             sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Racer::cmp_by));
 
             rsx! {
-                table {
-                    class: "table table-striped table-hover table-sm",
-                    thead {
-                        class: "table-dark",
+                table { class: "table table-striped table-hover table-sm",
+                    thead { class: "table-dark",
                         tr {
                             Th { sorter, field: RacerField::StartNumber, "Start number" }
                             Th { sorter, field: RacerField::FirstName, "First name" }
                             Th { sorter, field: RacerField::LastName, "Last name" }
                             Th { sorter, field: RacerField::Track, "Track" }
-                            th { CategoriesList { racers: racers.clone(), selected_category_id: selected_category_id } }
+                            th {
+                                CategoriesList {
+                                    racers: racers.clone(),
+                                    selected_category_id,
+                                }
+                            }
                         }
                     }
                     tbody {
                         for racer in sorted.iter() {
-                            if (*selected_category_id.read()).is_none_or(|cat_id|
-                                racer.categories.iter().any(|c| c.id == cat_id)
-                            ) {
+                            if (*selected_category_id.read())
+                                .is_none_or(|cat_id| racer.categories.iter().any(|c| c.id == cat_id))
+                            {
                                 tr {
                                     td { "{racer.start_number.unwrap_or(0)}" }
                                     td { "{racer.first_name}" }
@@ -229,7 +233,7 @@ fn Registrations(race_id: ReadOnlySignal<u32>) -> Element {
             }
         }
         Some(Err(err)) => rsx! {
-            div {"{err:?}"}
+            div { "{err:?}" }
         },
         _ => rsx! {},
     };
@@ -272,7 +276,6 @@ fn ManualStartNumberInput() -> Element {
             onsubmit: move |event| {
                 event.prevent_default();
                 println!("Enter pressed: {}", start_number.read());
-                // todo: store result
                 start_number.set(String::from(""));
             },
             input {
