@@ -4,6 +4,7 @@ use chrono::{DateTime, Local, NaiveTime, TimeZone, Utc};
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
 use dioxus::logger::tracing::warn;
 use dioxus::prelude::*;
+use futures_util::StreamExt;
 use tracing::Level;
 
 use crate::race::{Race, RacerField};
@@ -27,6 +28,11 @@ fn appconfig_default() -> Config {
             .with_title("rustpolnak")
             .with_min_inner_size(LogicalSize::new(1280, 768)),
     )
+}
+
+#[derive(Debug)]
+enum Action {
+    Start(String),
 }
 
 #[cfg(debug_assertions)]
@@ -67,8 +73,23 @@ fn App() -> Element {
         RaceRestAPI::new(&config.api.url, &config.api.username, &config.api.token)
     });
 
-    let selected_race =
+    let mut selected_race =
         use_signal(|| Option::<Result<race::Race, Box<dyn std::error::Error>>>::None);
+
+    use_coroutine(move |mut rx: UnboundedReceiver<Action>| async move {
+        while let Some(msg) = rx.next().await {
+            println!("{msg:?}");
+            match msg {
+                Action::Start(track) => {
+                    selected_race.with_mut(|maybe_race| {
+                        if let Some(Ok(race)) = maybe_race {
+                            race.start(track);
+                        }
+                    });
+                }
+            }
+        }
+    });
 
     rsx! {
         document::Link { rel: "stylesheet", href: BOOTSTRAP_CSS }
@@ -162,7 +183,10 @@ fn TrackStart(track: String) -> Element {
             }
             button {
                 class: "btn btn-success",
-                onclick: move |_| { *start.write() = Some(Local::now()) },
+                onclick: move |_| {
+                    *start.write() = Some(Local::now());
+                    use_coroutine_handle::<Action>().send(Action::Start(track.clone()));
+                },
                 "Start"
             }
         }
