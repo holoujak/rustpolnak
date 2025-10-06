@@ -20,7 +20,7 @@ in
   languages.python.uv.enable = true;
   packages = with pkgs; [
     dioxus-cli
-    # glib
+    glib
     gtk3
     webkitgtk_4_1
     xdotool
