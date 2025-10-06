@@ -33,6 +33,7 @@ fn appconfig_default() -> Config {
 #[derive(Debug)]
 enum Action {
     Start(String),
+    FinishByStartNumber(u32),
 }
 
 #[cfg(debug_assertions)]
@@ -84,6 +85,13 @@ fn App() -> Element {
                     selected_race.with_mut(|maybe_race| {
                         if let Some(Ok(race)) = maybe_race {
                             race.start(track);
+                        }
+                    });
+                }
+                Action::FinishByStartNumber(starting_number) => {
+                    selected_race.with_mut(|maybe_race| {
+                        if let Some(Ok(race)) = maybe_race {
+                            race.finish_start_number(starting_number);
                         }
                     });
                 }
@@ -289,7 +297,10 @@ fn ManualStartNumberInput() -> Element {
         form {
             onsubmit: move |event| {
                 event.prevent_default();
-                println!("Enter pressed: {}", start_number.read());
+                if let Ok(start_number) = start_number.read().parse() {
+                    use_coroutine_handle::<Action>()
+                        .send(Action::FinishByStartNumber(start_number));
+                }
                 start_number.set(String::from(""));
             },
             input {
