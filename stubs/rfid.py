@@ -23,7 +23,7 @@ class RFID:
             ]
         )
         time.sleep(1)
-        self.serial = serial.Serial(our_path, 115200)
+        self.serial = serial.Serial(our_path, 115200, write_timeout=0)
 
     def close(self) -> None:
         self.serial.close()
