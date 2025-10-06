@@ -1,3 +1,8 @@
+rfid_devices = [
+    "stubs/dev/rfid0",
+    "stubs/dev/rfid1",
+]
+
 [api]
 url = "http://localhost:8000"
 username = "user"

@@ -15,6 +15,7 @@ pub struct RestAPIConfig {
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub api: RestAPIConfig,
+    pub rfid_devices: Vec<String>,
 }
 
 /// Config paths sorted by highest priority first
