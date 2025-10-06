@@ -29,9 +29,19 @@ in
     LD_LIBRARY_PATH = openGlPaths;
     WEBKIT_DISABLE_COMPOSITING_MODE = 1;
   };
+  # enterTest = ''
+  #   cargo build --profile release
+  #   cargo test --profile release
+  # '';
   processes = {
     api.exec = "uv --directory stubs run fastapi dev";
     rfid.exec = "uv --directory stubs run rfid.py";
+  };
+  scripts = {
+    test-app.exec = ''
+      cargo build --profile release
+      cargo test --profile release
+    '';
   };
 }
 
