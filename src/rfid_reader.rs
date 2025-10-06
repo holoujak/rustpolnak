@@ -53,13 +53,13 @@ pub enum Error {
     InvalidHeader,
     WrongChecksum { received: u8, expected: u8 },
     Eof,
-    IOError(String),
-    ParseError,
+    IO(String),
+    Parse,
 }
 
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
-        Error::IOError(value.to_string())
+        Error::IO(value.to_string())
     }
 }
 
@@ -147,7 +147,7 @@ impl RFIDProtocol {
     fn parse_frame(&mut self, frame: &[u8]) -> Result<Frame, Error> {
         match parse(self.payload_with_valid_crc(frame)?) {
             Ok((_, frame)) => Ok(frame),
-            Err(_err) => Err(Error::ParseError),
+            Err(_err) => Err(Error::Parse),
         }
     }
 }
@@ -245,7 +245,7 @@ pub async fn rfid_serial(path: DevicePath, tx: Sender<Event>) {
             Err(err) => {
                 tx.send(Event::Disconnected {
                     device: path.to_string(),
-                    error: Error::IOError(err.to_string()),
+                    error: Error::IO(err.to_string()),
                 })
                 .unwrap();
             }
@@ -472,7 +472,7 @@ mod tests {
             ][..],
         );
         let res = reader.decode(&mut buf);
-        assert_eq!(res.unwrap_err(), Error::ParseError);
+        assert_eq!(res.unwrap_err(), Error::Parse);
         assert!(buf.is_empty());
     }
 }
