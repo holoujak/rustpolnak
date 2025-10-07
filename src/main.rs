@@ -5,6 +5,7 @@ use dioxus::prelude::*;
 use tracing::Level;
 
 use crate::components::app::App;
+use crate::restclient::RaceRestAPI;
 
 mod components;
 mod config;
@@ -41,9 +42,12 @@ fn appconfig() -> Config {
 fn main() {
     dioxus_logger::init(Level::INFO).expect("logger failed to init");
     let config = config::load_config();
+    let restapi = RaceRestAPI::new(&config.api.url, &config.api.username, &config.api.token);
+
     LaunchBuilder::new()
         .with_cfg(appconfig())
         .with_context(config)
+        .with_context(restapi)
         .launch(Window);
 }
 
