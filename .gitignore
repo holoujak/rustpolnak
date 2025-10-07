@@ -8,3 +8,4 @@ rustpolnak.toml
 .devenv*
 devenv.local.nix
 .devenv.flake.nix
+stubs/dev

@@ -24,6 +24,7 @@ in
     gtk3
     webkitgtk_4_1
     xdotool
+    socat
   ] ++ openGlDeps;
   env = {
     LD_LIBRARY_PATH = openGlPaths;
