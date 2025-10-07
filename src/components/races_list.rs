@@ -7,6 +7,7 @@ use crate::{race::Race, restclient::RaceRestAPI};
 type SignalRace = Signal<Option<Result<Race, Box<dyn std::error::Error>>>>;
 
 async fn load_race(mut selected_race: SignalRace, id: u32) {
+    selected_race.set(None);
     let race = Race::load(use_context::<RaceRestAPI>(), id).await;
     selected_race.set(Some(race));
 }
