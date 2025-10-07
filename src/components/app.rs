@@ -7,7 +7,6 @@ use crate::{
     components::{race::RaceComponent, races_list::RacesList},
     config::Config,
     race::Race,
-    restclient::RaceRestAPI,
     rfid_reader,
 };
 
@@ -19,11 +18,6 @@ pub enum Action {
 
 #[component]
 pub fn App() -> Element {
-    let config: Config = use_context();
-    use_context_provider(|| {
-        RaceRestAPI::new(&config.api.url, &config.api.username, &config.api.token)
-    });
-
     let mut selected_race = use_signal(|| Option::<Result<Race, Box<dyn std::error::Error>>>::None);
 
     use_coroutine(
