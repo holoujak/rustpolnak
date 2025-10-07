@@ -35,4 +35,3 @@ in
     rfid.exec = "uv --directory stubs run rfid.py";
   };
 }
-
