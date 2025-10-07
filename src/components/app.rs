@@ -10,6 +10,8 @@ use crate::{
     rfid_reader,
 };
 
+const LOADING: Asset = asset!("/assets/loading.webp");
+
 #[derive(Debug)]
 pub enum Action {
     Start(String),
@@ -79,7 +81,11 @@ pub fn App() -> Element {
                 Some(Err(err)) => rsx! {
                 "{err:#?}"
                 },
-                None => rsx! {},
+                None => rsx! {
+                    div { class: "d-flex justify-content-center align-items-center vh-100",
+                        img { src: LOADING }
+                    }
+                },
             }
         }
     }
