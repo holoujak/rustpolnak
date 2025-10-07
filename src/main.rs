@@ -1,18 +1,12 @@
 #![allow(dead_code)]
 
-use chrono::{DateTime, Local, NaiveTime, TimeZone, Utc};
 use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
-use dioxus::logger::tracing::warn;
 use dioxus::prelude::*;
-use futures_util::StreamExt;
-use tokio::sync::broadcast;
-use tracing::{info, Level};
+use tracing::Level;
 
-use crate::race::{Race, RacerField};
-use crate::restclient::RaceRestAPI;
-use crate::sort_table::Th;
-use crate::sorter::Sorter;
+use crate::components::app::App;
 
+mod components;
 mod config;
 mod race;
 mod restclient;
@@ -32,12 +26,6 @@ fn appconfig_default() -> Config {
     )
 }
 
-#[derive(Debug)]
-enum Action {
-    Start(String),
-    FinishByStartNumber(u32),
-}
-
 #[cfg(debug_assertions)]
 fn appconfig() -> Config {
     appconfig_default()
@@ -50,304 +38,20 @@ fn appconfig() -> Config {
         .with_disable_context_menu(true)
 }
 
-fn format_time(datetime: Option<DateTime<Utc>>) -> String {
-    match datetime {
-        Some(datetime) => datetime
-            .with_timezone(&Local)
-            .format("%H:%M:%S%.3f")
-            .to_string(),
-        None => "".to_string(),
-    }
-}
-
 fn main() {
     dioxus_logger::init(Level::INFO).expect("logger failed to init");
     let config = config::load_config();
     LaunchBuilder::new()
         .with_cfg(appconfig())
         .with_context(config)
-        .launch(App);
+        .launch(Window);
 }
 
 #[component]
-fn App() -> Element {
-    let config: config::Config = use_context();
-    use_context_provider(|| {
-        RaceRestAPI::new(&config.api.url, &config.api.username, &config.api.token)
-    });
-
-    let mut selected_race =
-        use_signal(|| Option::<Result<race::Race, Box<dyn std::error::Error>>>::None);
-
-    use_coroutine(
-        move |mut actions_rx: UnboundedReceiver<Action>| async move {
-            let (tx, mut rfid_rx) = broadcast::channel::<rfid_reader::Event>(128);
-            for serial in use_context::<config::Config>().rfid_devices {
-                tokio::spawn(rfid_reader::rfid_serial(serial, tx.clone()));
-            }
-
-            loop {
-                tokio::select! {
-                    Ok(rfid_event) = rfid_rx.recv() => {
-                        println!("{rfid_event:?}");
-                        match rfid_event {
-                            rfid_reader::Event::Connected(device) => info!("RFID {device} connected"),
-                            rfid_reader::Event::Disconnected { device, error } => info!("RFID {device} disconnected: {error:?}"),
-                            rfid_reader::Event::Tag(tag) => {
-                                info!("Tag {tag}");
-                                selected_race.with_mut(|maybe_race| {
-                                    if let Some(Ok(race)) = maybe_race {
-                                        race.tag_finished(&tag);
-                                    }
-                                });
-                            },
-                        }
-                    }
-
-                    Some(msg) = actions_rx.next() => {
-                        println!("{msg:?}");
-                        match msg {
-                            Action::Start(track) => {
-                                selected_race.with_mut(|maybe_race| {
-                                    if let Some(Ok(race)) = maybe_race {
-                                        race.start(track);
-                                    }
-                                });
-                            }
-                            Action::FinishByStartNumber(starting_number) => {
-                                selected_race.with_mut(|maybe_race| {
-                                    if let Some(Ok(race)) = maybe_race {
-                                        race.finish_start_number(starting_number);
-                                    }
-                                });
-                            }
-                        }
-                    }
-                }
-            }
-        },
-    );
-
+fn Window() -> Element {
     rsx! {
         document::Link { rel: "stylesheet", href: BOOTSTRAP_CSS }
         document::Link { rel: "stylesheet", href: MAIN_CSS }
-        div {
-            RacesList { selected_race }
-            match &*selected_race.read() {
-                Some(Ok(race)) => rsx! {
-                    RaceComponent { race: race.clone() }
-                },
-                Some(Err(err)) => rsx! {
-                "{err:#?}"
-                },
-                None => rsx! {},
-            }
-        }
-    }
-}
-
-#[component]
-fn RacesList(
-    selected_race: Signal<Option<Result<race::Race, Box<dyn std::error::Error>>>>,
-) -> Element {
-    let races = use_resource(move || async move {
-        let api = use_context::<RaceRestAPI>();
-        api.races().await
-    });
-
-    rsx! {
-        match &*races.read() {
-            Some(Ok(races)) => rsx! {
-                select {
-                    class: "form-select mb-1",
-                    onchange: move |e| {
-                        let race_id = e.value().parse::<u32>().ok().unwrap();
-                        spawn(async move {
-                            let race = race::Race::load(use_context::<RaceRestAPI>(), race_id).await;
-                            selected_race.set(Some(race));
-                        });
-                    },
-                    option { disabled: true, selected: true, "Select race" }
-                    for race in races.iter() {
-                        option { value: "{race.id}", "{race.name}" }
-                    }
-                }
-            },
-            Some(Err(err)) => rsx! {
-                div { "{err:?}" }
-            },
-            _ => rsx! {},
-        }
-    }
-}
-
-#[component]
-fn TrackStart(track: String) -> Element {
-    let mut start: Signal<Option<DateTime<Local>>> = use_signal(|| None);
-
-    rsx! {
-        div { class: "input-group", style: "width: 220px",
-            span { class: "input-group-text", style: "width: 80px", "{track}" }
-            input {
-                class: "form-control form-control-sm",
-                r#type: "time",
-                value: match *start.read() {
-                    Some(start) => start.format("%H:%M:%S").to_string(),
-                    None => "".to_string(),
-                },
-                oninput: move |event| {
-                    match NaiveTime::parse_from_str(&event.value(), "%H:%M:%S") {
-                        Ok(time) => {
-                            match Local
-                                .from_local_datetime(&(Local::now().date_naive().and_time(time)))
-                                .single()
-                            {
-                                Some(local_dt) => {
-                                    *start.write() = Some(local_dt);
-                                }
-                                None => {
-                                    warn! {
-                                        "Failed to create datetime"
-                                    }
-                                }
-                            }
-                        }
-                        Err(err) => {
-                            warn!("Failed to parse: {err:?}");
-                        }
-                    }
-                },
-            }
-            button {
-                class: "btn btn-success",
-                onclick: move |_| {
-                    *start.write() = Some(Local::now());
-                    use_coroutine_handle::<Action>().send(Action::Start(track.clone()));
-                },
-                "Start"
-            }
-        }
-    }
-}
-
-#[component]
-fn RaceComponent(race: Race) -> Element {
-    rsx! {
-        div { class: "d-flex flex-row column-gap-1 mb-1",
-            for track in race.clone().tracks {
-                TrackStart { track: track.clone() }
-            }
-        }
-        Registrations { race: race.clone() }
-        ManualStartNumberInput {}
-    }
-}
-
-#[component]
-fn Registrations(race: race::Race) -> Element {
-    let selected_category_id = use_signal(|| Option::<String>::None);
-    let sorter = use_signal(|| Sorter::<RacerField>::new(RacerField::StartNumber));
-
-    let mut sorted = race.racers.clone();
-    let field = sorter.read().active;
-    sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, race::Racer::cmp_by));
-
-    rsx! {
-        table { class: "table table-striped table-hover table-sm",
-            thead { class: "table-dark",
-                tr {
-                    Th { sorter, field: RacerField::StartNumber, "Start number" }
-                    Th { sorter, field: RacerField::FirstName, "First name" }
-                    Th { sorter, field: RacerField::LastName, "Last name" }
-                    Th { sorter, field: RacerField::Track, "Track" }
-                    th { "Start" }
-                    th { "Finish" }
-                    th {
-                        CategoriesList {
-                            categories: race.categories,
-                            selected_category_id,
-                        }
-                    }
-                }
-            }
-            tbody {
-                for racer in sorted.iter() {
-                    if (selected_category_id.read().clone())
-                        .is_none_or(|cat_id| racer.categories.contains(&cat_id))
-                    {
-                        tr {
-                            td { "{racer.start_number}" }
-                            td { "{racer.first_name}" }
-                            td { "{racer.last_name}" }
-                            td { "{racer.track}" }
-                            td { "{format_time(racer.start)}" }
-                            td { "{format_time(racer.finish)}" }
-                            td {
-                                for category in racer.categories.clone() {
-                                    "{category} "
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn CategoriesList(
-    categories: Vec<String>,
-    selected_category_id: Signal<Option<String>>,
-) -> Element {
-    let mut sorted_categories: Vec<_> = categories.to_vec();
-    sorted_categories.sort();
-
-    rsx! {
-        select {
-            onchange: move |e| {
-                let val = e.value().parse::<String>().ok();
-                selected_category_id
-                    .set(if val == Some("All".to_string()) { None } else { val });
-            },
-            option { disabled: false, selected: true, "All" }
-            for c in sorted_categories.iter() {
-                option { value: "{c}", "{c}" }
-            }
-        }
-    }
-}
-
-#[component]
-fn ManualStartNumberInput() -> Element {
-    let mut start_number = use_signal(|| "".to_string());
-
-    rsx! {
-        form {
-            onsubmit: move |event| {
-                event.prevent_default();
-                if let Ok(start_number) = start_number.read().parse() {
-                    use_coroutine_handle::<Action>()
-                        .send(Action::FinishByStartNumber(start_number));
-                }
-                start_number.set(String::from(""));
-            },
-            input {
-                class: "form-control",
-                placeholder: "Start number",
-                r#type: "number",
-                value: start_number,
-                onkeydown: move |event| {
-                    let key = event.key().to_string();
-                    if key.chars().all(|c| c.is_ascii_digit()) {
-                        let current_start_number = start_number.read().clone();
-                        start_number.set(current_start_number + &key);
-                    } else if event.key() != Key::Enter {
-                        event.prevent_default();
-                        start_number.set(String::from(""));
-                    }
-                },
-            }
-        }
+        App {}
     }
 }
