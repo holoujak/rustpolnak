@@ -1,3 +1,5 @@
+use std::error::Error;
+
 use dioxus::prelude::*;
 
 use crate::{race::Race, restclient::RaceRestAPI};
@@ -6,10 +8,13 @@ use crate::{race::Race, restclient::RaceRestAPI};
 pub fn RacesList(
     selected_race: Signal<Option<Result<Race, Box<dyn std::error::Error>>>>,
 ) -> Element {
-    let races = use_resource(move || async move {
-        let api = use_context::<RaceRestAPI>();
-        api.races().await
-    });
+    let races: Resource<Result<Vec<crate::restclient::Race>, Box<dyn Error>>> =
+        use_resource(move || async move {
+            let api = use_context::<RaceRestAPI>();
+            let mut races = api.races().await?;
+            races.sort_by(|a, b| b.date_of_event.cmp(&a.date_of_event));
+            Ok(races)
+        });
 
     rsx! {
         match &*races.read() {
