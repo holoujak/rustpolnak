@@ -7,6 +7,7 @@ use crate::restclient::RaceRestAPI;
 
 #[derive(Clone, PartialEq)]
 pub struct Race {
+    pub id: u32,
     pub racers: Vec<Racer>,
     pub categories: Vec<String>,
     pub tracks: Vec<String>,
@@ -82,6 +83,7 @@ impl Race {
             .collect();
 
         Ok(Race {
+            id: race_id,
             racers,
             categories: categories.into_iter().collect(),
             tracks,
