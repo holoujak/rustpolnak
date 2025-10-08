@@ -48,40 +48,39 @@ Configuration is loaded from the following paths, in order of priority:
 4. `~/.config/rustpolnak.toml`
 
 ## Set up your dev environment
-- have `nix`
-- have `devenv` in your system:
-  - get a shell via `nix shell nixpkgs#devenv nixpkgs#direnv`
-  - install globally via `nix profile add nixpkgs#devenv nixpkgs#direnv`
+Prerequisites - have `nix` and  `devenv` in your system:
+
+`$ nix shell nixpkgs#devenv` to get `devenv` into your `$PATH` in a temporary shell
+
+OR
+
+`$ nix profile add nixpkgs#devenv` to install imperatively to your system
+
+`$ devenv shell` to enter the dev environment
+
+Optional: automatically enter the environment via `direnv`
+- Have [`direnv`](https://direnv.net/docs/installation.html) in your system
 - On first `cd` into this repository, you may need to call `direnv allow` to whitelist this path
-- On subsequent `cd` into this repository, `direnv` should pick up automatically
-and drop you into a `devenv shell`
-
-Processes:
-- `devenv up api -d` - run API in background
-- `devenv up rfid -d` - run RFID in background
-- `devenv up` - run all in foreground
-- `devenv down` - stop the processes
-- `cargo run` - run the app
-
-### Option 2 - manually
+- On subsequent `cd` into this repository, `direnv` should pick up automatically and drop you into a `devenv shell`
 
 ## Build & Run
 
-```bash
-$ dx serve
-```
+Run the app:
+`$ devenv up dx`
+`$ cargo run`
 
 Start testing API server:
-```bash
-$ cd stubs
-$ uv run fastapi dev
-```
+`$ devenv up api`
 
-Run `rfid.py` to create virtual serials `stubs/dev/rfid0` and `stubs/dev/rfid1` and begin publishing TAGs:
-```bash
-$ cd stubs
-$ uv run rfid.py
-```
+Create virtual serials `stubs/dev/rfid0` and `stubs/dev/rfid1` and begin publishing TAGs:
+`$ devenv up rfid`
+
+Run `rfiddump` to test RFID readers:
+`$ devenv up rfiddump`
+
+Run both API and virtual RFID:
+`$ devenv up api rfid`
+
 
 Run `rfiddump` to test RFID readers:
 ```
