@@ -22,6 +22,8 @@ in
     dioxus-cli
     glib
     gtk3
+    git
+    tk
     webkitgtk_4_1
     xdotool
     socat
