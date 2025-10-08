@@ -15,6 +15,7 @@ pub struct Race {
 
 #[derive(Clone, PartialEq)]
 pub struct Racer {
+    pub id: u32,
     pub start_number: u32,
     pub tag: String,
     pub first_name: String,
@@ -67,6 +68,7 @@ impl Race {
         let racers = api_result
             .into_iter()
             .map(|racer| Racer {
+                id: racer.id,
                 start_number: racer.start_number.unwrap_or(0),
                 tag: racer.tag_id.unwrap_or("".to_string()),
                 first_name: racer.first_name,
