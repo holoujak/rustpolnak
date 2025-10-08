@@ -47,12 +47,24 @@ Configuration is loaded from the following paths, in order of priority:
 3. `$XDG_CONFIG_HOME/rustpolnak.toml`
 4. `~/.config/rustpolnak.toml`
 
-## devenv
-1. get nix
-2. have `devenv` in your PATH or get it via `nix develop`
-3. `devenv shell`
-4. `devenv up` to run API and RFID services
-5. `cargo run`
+## Set up your dev environment
+- have `nix`
+- have `devenv` in your system:
+  - get a shell via `nix shell nixpkgs#devenv nixpkgs#direnv`
+  - install globally via `nix profile add nixpkgs#devenv nixpkgs#direnv`
+- On first `cd` into this repository, you may need to call `direnv allow` to whitelist this path
+- On subsequent `cd` into this repository, `direnv` should pick up automatically
+and drop you into a `devenv shell`
+
+Processes:
+- `devenv up api -d` - run API in background
+- `devenv up rfid -d` - run RFID in background
+- `devenv up` - run all in foreground
+- `devenv down` - stop the processes
+- `cargo run` - run the app
+
+### Option 2 - manually
+
 ## Build & Run
 
 ```bash
