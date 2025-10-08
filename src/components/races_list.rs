@@ -49,7 +49,7 @@ pub fn RacesList(selected_race: SignalRace) -> Element {
                 }
             },
             Some(Err(err)) => rsx! {
-                div { "{err:?}" }
+                p { class: "alert alert-danger", "{err:#?}" }
             },
             _ => rsx! {},
         }
