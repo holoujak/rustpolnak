@@ -1,4 +1,6 @@
-use chrono::NaiveDateTime;
+use chrono::TimeZone;
+use chrono::{DateTime, NaiveDateTime, Utc};
+use chrono_tz::Europe::Prague;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 
@@ -10,7 +12,7 @@ pub struct Race {
     pub name: String,
     pub description: String,
     #[serde(rename = "dateOfEvent", deserialize_with = "parse_dt")]
-    pub date_of_event: NaiveDateTime,
+    pub date_of_event: DateTime<Utc>,
 }
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
@@ -47,9 +49,9 @@ pub struct RacerResult {
     #[serde(rename = "registrationId")]
     pub registration_id: u32,
     #[serde(rename = "startTime", serialize_with = "serialize_dt")]
-    pub start_time: NaiveDateTime,
+    pub start_time: DateTime<Utc>,
     #[serde(rename = "finishTime", serialize_with = "serialize_dt")]
-    pub finish_time: NaiveDateTime,
+    pub finish_time: DateTime<Utc>,
 }
 
 #[derive(Debug, Serialize)]
@@ -57,20 +59,37 @@ struct Results {
     results: Vec<RacerResult>,
 }
 
-fn serialize_dt<S>(date: &NaiveDateTime, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_dt<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {
-    let s = date.format(DATE_TIME_FORMAT).to_string();
+    let s = date
+        .with_timezone(&Prague)
+        .format(DATE_TIME_FORMAT)
+        .to_string();
     serializer.serialize_str(&s)
 }
 
-fn parse_dt<'de, D>(deserializer: D) -> Result<NaiveDateTime, D::Error>
+fn parse_dt<'de, D>(deserializer: D) -> Result<DateTime<Utc>, D::Error>
 where
     D: Deserializer<'de>,
 {
     let s: String = Deserialize::deserialize(deserializer)?;
-    NaiveDateTime::parse_from_str(s.trim(), DATE_TIME_FORMAT).map_err(serde::de::Error::custom)
+
+    // parse date without timezone
+    let naive =
+        NaiveDateTime::parse_from_str(&s, DATE_TIME_FORMAT).map_err(serde::de::Error::custom)?;
+
+    // interpret as local time in Prague
+    let local_dt = Prague
+        .from_local_datetime(&naive)
+        .single()
+        .ok_or(serde::de::Error::custom(
+            "Failed to interpret local time in Prague",
+        ))?;
+
+    // convert to UTC
+    Ok(local_dt.with_timezone(&Utc))
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
