@@ -5,3 +5,4 @@ pub mod race;
 pub mod racers;
 pub mod races_list;
 pub mod track_start;
+pub mod upload_results;
