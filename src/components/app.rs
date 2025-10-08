@@ -93,7 +93,7 @@ pub fn App() -> Element {
                     RaceComponent { race: race.clone() }
                 },
                 Some(Err(err)) => rsx! {
-                "{err:#?}"
+                    p { class: "alert alert-danger", "{err:#?}" }
                 },
                 None => rsx! {
                     div { class: "d-flex justify-content-center align-items-center vh-100",
