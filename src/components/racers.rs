@@ -37,6 +37,7 @@ pub fn Racers(race: Race) -> Element {
                     Th { sorter, field: RacerField::Track, "Track" }
                     th { "Start" }
                     th { "Finish" }
+                    th { "Track rank" }
                     th {
                         CategoriesList {
                             categories: race.categories,
@@ -46,6 +47,7 @@ pub fn Racers(race: Race) -> Element {
                 }
             }
             tbody {
+
                 for racer in sorted.iter() {
                     if (selected_category_id.read().clone())
                         .is_none_or(|cat_id| racer.categories.contains(&cat_id))
@@ -57,6 +59,12 @@ pub fn Racers(race: Race) -> Element {
                             td { "{racer.track}" }
                             td { "{format_time(racer.start)}" }
                             td { "{format_time(racer.finish)}" }
+                            td {
+                                "{race.tracks_rank.get(&racer.track)
+                                    .and_then(|m| m.get(&racer.start_number))
+                                    .map(|rank| rank.to_string())
+                                    .unwrap_or_default() }"
+                            }
                             td {
                                 for category in racer.categories.clone() {
                                     "{category} "
