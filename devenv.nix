@@ -31,7 +31,9 @@ in
     WEBKIT_DISABLE_COMPOSITING_MODE = 1;
   };
   processes = {
+    dx.exec = "dx serve";
     api.exec = "uv --directory stubs run fastapi dev";
     rfid.exec = "uv --directory stubs run rfid.py";
+    rfiddump.exec = "cargo run --bin rfiddump";
   };
 }
