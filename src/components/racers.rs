@@ -27,13 +27,32 @@ pub fn Racers(race: Race) -> Element {
     let field = sorter.read().active;
     sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Racer::cmp_by));
 
+    let start_number_filter = use_signal(|| None::<String>);
+    let first_name_filter = use_signal(|| None::<String>);
+    let last_name_filter = use_signal(|| None::<String>);
+
     rsx! {
         table { class: "table table-striped table-hover table-sm",
             thead { class: "table-dark",
                 tr {
-                    Th { sorter, field: RacerField::StartNumber, "Start number" }
-                    Th { sorter, field: RacerField::FirstName, "First name" }
-                    Th { sorter, field: RacerField::LastName, "Last name" }
+                    Th {
+                        sorter,
+                        field: RacerField::StartNumber,
+                        filter: start_number_filter,
+                        "Start number"
+                    }
+                    Th {
+                        sorter,
+                        field: RacerField::FirstName,
+                        filter: first_name_filter,
+                        "First name"
+                    }
+                    Th {
+                        sorter,
+                        field: RacerField::LastName,
+                        filter: last_name_filter,
+                        "Last name"
+                    }
                     Th { sorter, field: RacerField::Track, "Track" }
                     th { "Start" }
                     th { "Finish" }
@@ -51,6 +70,18 @@ pub fn Racers(race: Race) -> Element {
                 for racer in sorted.iter() {
                     if (selected_category_id.read().clone())
                         .is_none_or(|cat_id| racer.categories.contains(&cat_id))
+                        && start_number_filter
+                            .read()
+                            .as_ref()
+                            .is_none_or(|f| racer.start_number.to_string().contains(f))
+                        && first_name_filter
+                            .read()
+                            .as_ref()
+                            .is_none_or(|f| racer.first_name.to_lowercase().contains(&f.to_lowercase()))
+                        && last_name_filter
+                            .read()
+                            .as_ref()
+                            .is_none_or(|f| racer.last_name.to_lowercase().contains(&f.to_lowercase()))
                     {
                         tr {
                             td { "{racer.start_number}" }
