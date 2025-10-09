@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use tracing::error;
 
@@ -11,6 +12,7 @@ pub struct Race {
     pub racers: Vec<Racer>,
     pub categories: Vec<String>,
     pub tracks: Vec<String>,
+    pub tracks_rank: HashMap<String, HashMap<u32, u32>>, // track -> (start_number -> rank)
 }
 
 #[derive(Clone, PartialEq)]
@@ -89,6 +91,7 @@ impl Race {
             racers,
             categories: categories.into_iter().collect(),
             tracks,
+            tracks_rank: HashMap::new(),
         })
     }
 
@@ -104,22 +107,61 @@ impl Race {
         let racer = self
             .racers
             .iter_mut()
-            .find(|r| r.start_number == start_number);
+            .find(|r| r.start_number == start_number && r.start.is_some() && r.finish.is_none());
 
         if let Some(racer) = racer {
             racer.finish = Some(Utc::now());
+            self.map_start_number_to_track_rank();
         } else {
             error!("Racer with starting number {start_number} not found.");
         }
     }
 
     pub fn tag_finished(&mut self, tag: &str) {
-        let racer = self.racers.iter_mut().find(|r| r.tag == tag);
+        let racer = self
+            .racers
+            .iter_mut()
+            .find(|r| r.tag == tag && r.start.is_some() && r.finish.is_none());
 
         if let Some(racer) = racer {
             racer.finish = Some(Utc::now());
+            self.map_start_number_to_track_rank();
         } else {
             error!("Racer with tag {tag} not found.");
+        }
+    }
+
+    pub fn map_start_number_to_track_rank(&mut self) {
+        let tracks = self.tracks.clone();
+        for track in tracks {
+            self.calculate_track_rank(&track);
+        }
+    }
+
+    fn calculate_track_rank(&mut self, track: &str) {
+        let mut finished: Vec<&Racer> = self
+            .racers
+            .iter()
+            .filter(|r| r.track == track)
+            .filter(|r| r.finish.is_some())
+            .collect();
+
+        finished.sort_by(|a, b| {
+            let ord = a.finish.cmp(&b.finish);
+            if ord != std::cmp::Ordering::Equal {
+                return ord;
+            }
+
+            // in case the finish times are equal, sort by start number
+            a.start_number.cmp(&b.start_number)
+        });
+
+        let current_track_rank = self.tracks_rank.entry(track.to_string()).or_default();
+
+        current_track_rank.clear(); // Clear previous rankings
+
+        for (rank, r) in finished.into_iter().enumerate() {
+            current_track_rank.insert(r.start_number, (rank + 1).try_into().unwrap());
         }
     }
 }
