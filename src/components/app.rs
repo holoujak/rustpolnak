@@ -59,11 +59,13 @@ fn handle_action(selected_race: &mut Signal<SelectedRace>, action: Action) {
 #[component]
 pub fn App() -> Element {
     let mut selected_race = use_signal(|| SelectedRace::None);
+    let config = use_context::<Config>();
 
-    use_coroutine(
-        move |mut actions_rx: UnboundedReceiver<Action>| async move {
+    use_coroutine(move |mut actions_rx: UnboundedReceiver<Action>| {
+        let config = config.clone();
+        async move {
             let (tx, mut rfid_rx) = broadcast::channel::<rfid_reader::Event>(128);
-            for serial in use_context::<Config>().rfid_devices {
+            for serial in config.rfid_devices {
                 tokio::spawn(rfid_reader::rfid_serial(serial, tx.clone()));
             }
 
@@ -79,8 +81,8 @@ pub fn App() -> Element {
                     }
                 }
             }
-        },
-    );
+        }
+    });
 
     rsx! {
         div {
