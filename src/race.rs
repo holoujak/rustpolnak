@@ -1,9 +1,12 @@
 use chrono::{DateTime, Utc};
+use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::rc::Rc;
 use tracing::error;
 
+use crate::race_events::RaceEvents;
 use crate::restclient::RaceRestAPI;
 
 #[derive(Clone, PartialEq)]
@@ -13,9 +16,10 @@ pub struct Race {
     pub categories: Vec<String>,
     pub tracks: Vec<String>,
     pub tracks_rank: HashMap<String, HashMap<u32, u32>>, // track -> (start_number -> rank)
+    log: Rc<RefCell<RaceEvents>>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Racer {
     pub id: u32,
     pub start_number: u32,
@@ -52,6 +56,7 @@ impl Racer {
 impl Race {
     pub async fn load(api: RaceRestAPI, race_id: u32) -> Result<Race, Box<dyn std::error::Error>> {
         let api_result = api.registrations(race_id).await?;
+        let racelog = RaceEvents::load(race_id);
 
         let tracks = api_result
             .iter()
@@ -75,14 +80,18 @@ impl Race {
                 tag: racer.tag_id.unwrap_or("".to_string()),
                 first_name: racer.first_name,
                 last_name: racer.last_name,
-                track: racer.track.name,
+                track: racer.track.name.clone(),
                 categories: racer
                     .categories
                     .into_iter()
                     .map(|category| category.name)
                     .collect(),
-                start: None,
-                finish: None,
+                start: racelog.get_track_start(&racer.track.name),
+                finish: if let Some(start_number) = racer.start_number {
+                    racelog.get_finish_time_for(start_number)
+                } else {
+                    None
+                },
             })
             .collect();
 
@@ -92,6 +101,7 @@ impl Race {
             categories: categories.into_iter().collect(),
             tracks,
             tracks_rank: HashMap::new(),
+            log: RefCell::new(racelog).into(),
         })
     }
 
@@ -99,34 +109,39 @@ impl Race {
         for racer in self.racers.iter_mut() {
             if racer.track == track {
                 racer.start = Some(time);
+                self.log.borrow_mut().log_start(&track, time);
             }
         }
     }
 
-    pub fn finish_start_number(&mut self, start_number: u32) {
-        let racer = self
-            .racers
-            .iter_mut()
-            .find(|r| r.start_number == start_number && r.start.is_some() && r.finish.is_none());
+    fn finish<F>(&mut self, mut predicate: F) -> Result<(), ()>
+    where
+        F: for<'a> FnMut(&&'a mut Racer) -> bool,
+    {
+        let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
+        let finish_time = Utc::now();
+        racer.finish = Some(finish_time);
+        self.log
+            .borrow_mut()
+            .log_finish(racer.start_number, finish_time);
+        self.map_start_number_to_track_rank();
+        Ok(())
+    }
 
-        if let Some(racer) = racer {
-            racer.finish = Some(Utc::now());
-            self.map_start_number_to_track_rank();
-        } else {
+    pub fn finish_start_number(&mut self, start_number: u32) {
+        if self
+            .finish(|r| r.start_number == start_number && r.start.is_some() && r.finish.is_none())
+            .is_err()
+        {
             error!("Racer with starting number {start_number} not found.");
         }
     }
 
     pub fn tag_finished(&mut self, tag: &str) {
-        let racer = self
-            .racers
-            .iter_mut()
-            .find(|r| r.tag == tag && r.start.is_some() && r.finish.is_none());
-
-        if let Some(racer) = racer {
-            racer.finish = Some(Utc::now());
-            self.map_start_number_to_track_rank();
-        } else {
+        if self
+            .finish(|r| r.tag == tag && r.start.is_some() && r.finish.is_none())
+            .is_err()
+        {
             error!("Racer with tag {tag} not found.");
         }
     }
