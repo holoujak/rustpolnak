@@ -1,48 +1,42 @@
-use chrono::{DateTime, Local, NaiveTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
-use tracing::warn;
 
-use crate::components::app::Action;
-
-fn parse_time(str: &str) -> Option<DateTime<Utc>> {
-    match NaiveTime::parse_from_str(str, "%H:%M:%S") {
-        Ok(naive_time) => {
-            let time = Local
-                .from_local_datetime(&(Local::now().date_naive().and_time(naive_time)))
-                .single();
-
-            time.map(|time| time.to_utc())
-        }
-        Err(err) => {
-            warn!("Failed to parse: {err:?}");
-            None
-        }
-    }
-}
+use crate::components::{app::Action, time_input::TimeInput};
 
 #[component]
 pub fn TrackStart(track: String) -> Element {
     let mut start: Signal<Option<DateTime<Utc>>> = use_signal(|| None);
+    let mut editing = use_signal(|| false);
+    let track2 = track.clone();
 
     rsx! {
-        div { class: "input-group", style: "width: 220px",
-            span { class: "input-group-text", style: "width: 80px", "{track}" }
-            input {
-                class: "form-control form-control-sm",
-                r#type: "time",
-                value: match *start.read() {
-                    Some(start) => start.with_timezone(&Local).format("%H:%M:%S").to_string(),
-                    None => "".to_string(),
+        div { class: "input-group", style: "width: 300px",
+            span { class: "input-group-text", "{track}" }
+            TimeInput {
+                time: start,
+                editing,
+                onsave: move |time| {
+                    start.set(Some(time));
+                    use_coroutine_handle::<Action>().send(Action::Start(track.clone(), time));
                 },
-                oninput: move |event| {
-                    *start.write() = parse_time(&event.value());
+            }
+            button {
+                class: "btn",
+                class: if editing() { "btn-danger" } else { "btn-outline-secondary" },
+                onclick: move |_evt| {
+                    if *editing.read() {
+                        editing.set(false);
+                    } else {
+                        editing.set(true);
+                    }
                 },
+                dangerous_inner_html: if editing() { iconify::svg!("mdi:times") } else { iconify::svg!("mdi:edit") },
             }
             button {
                 class: "btn btn-success",
                 onclick: move |_| {
-                    *start.write() = Some(Utc::now());
-                    use_coroutine_handle::<Action>().send(Action::Start(track.clone()));
+                    start.set(Some(Utc::now()));
+                    use_coroutine_handle::<Action>().send(Action::Start(track2.clone(), Utc::now()));
                 },
                 "Start"
             }

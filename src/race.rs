@@ -95,10 +95,10 @@ impl Race {
         })
     }
 
-    pub fn start(&mut self, track: String) {
+    pub fn start(&mut self, track: String, time: DateTime<Utc>) {
         for racer in self.racers.iter_mut() {
             if racer.track == track {
-                racer.start = Some(Utc::now());
+                racer.start = Some(time);
             }
         }
     }
