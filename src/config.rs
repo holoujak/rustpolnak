@@ -18,6 +18,12 @@ pub struct Config {
     pub rfid_devices: Vec<String>,
 }
 
+pub fn app_dir() -> PathBuf {
+    let dir = PathBuf::from(env::var("HOME").unwrap()).join(".rustpolnak");
+    fs::create_dir_all(&dir).unwrap();
+    dir
+}
+
 /// Config paths sorted by highest priority first
 fn config_paths() -> Vec<PathBuf> {
     let mut paths: Vec<PathBuf> = Vec::new();
@@ -31,16 +37,8 @@ fn config_paths() -> Vec<PathBuf> {
     // 2. current directory
     paths.push(filename.into());
 
-    // 3. $XDG_CONFIG_HOME
-    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
-        paths.push(PathBuf::from(xdg).join(filename));
-    }
-
-    // 4. ~/.config
-    if let Ok(home) = env::var("HOME") {
-        paths.push(PathBuf::from(home).join(".config").join(filename));
-    }
-
+    // 3. ~/.rustpolnak/
+    paths.push(app_dir().join(filename));
     paths
 }
 
