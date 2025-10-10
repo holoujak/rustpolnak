@@ -73,7 +73,7 @@ Start testing API server:
 `$ devenv up api`
 
 Create virtual serials `stubs/dev/rfid0` and `stubs/dev/rfid1` and begin publishing TAGs:
-`$ devenv up rfid`
+`$ uv run --directory stubs rfid.py`
 
 Run `rfiddump` to test RFID readers:
 `$ devenv up rfiddump`
