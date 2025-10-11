@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 use futures_util::StreamExt;
 use tokio::sync::broadcast;
@@ -16,7 +17,7 @@ const LOADING: Asset = asset!("/assets/loading.webp");
 
 #[derive(Debug)]
 pub enum Action {
-    Start(String),
+    Start(String, DateTime<Utc>),
     FinishByStartNumber(u32),
 }
 
@@ -39,10 +40,10 @@ fn handle_rfid_event(selected_race: &mut Signal<SelectedRace>, event: rfid_reade
 
 fn handle_action(selected_race: &mut Signal<SelectedRace>, action: Action) {
     match action {
-        Action::Start(track) => {
+        Action::Start(track, time) => {
             selected_race.with_mut(|maybe_race| {
                 if let Some(Ok(race)) = maybe_race {
-                    race.start(track);
+                    race.start(track, time);
                 }
             });
         }

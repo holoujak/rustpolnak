@@ -15,6 +15,7 @@ dioxus-logger = "0.6.2"
 env_logger = "0.11.8"
 futures = "0.3.31"
 futures-util = "0.3.31"
+iconify = "0.3.1"
 log = "0.4.28"
 nom = "8.0.0"
 reqwest = { version = "0.12.23", default-features = false, features = ["json", "rustls-tls"] }
