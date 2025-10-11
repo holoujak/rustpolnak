@@ -10,7 +10,7 @@ use crate::restclient::RaceRestAPI;
 mod components;
 mod config;
 mod race;
-mod race_log;
+mod race_events;
 mod restclient;
 mod rfid_reader;
 mod sort_table;

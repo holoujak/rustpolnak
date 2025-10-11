@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::rc::Rc;
 use tracing::error;
 
-use crate::race_log::RaceLog;
+use crate::race_events::RaceEvents;
 use crate::restclient::RaceRestAPI;
 
 #[derive(Clone, PartialEq)]
@@ -14,7 +14,7 @@ pub struct Race {
     pub racers: Vec<Racer>,
     pub categories: Vec<String>,
     pub tracks: Vec<String>,
-    log: Rc<RefCell<RaceLog>>,
+    log: Rc<RefCell<RaceEvents>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -54,7 +54,7 @@ impl Racer {
 impl Race {
     pub async fn load(api: RaceRestAPI, race_id: u32) -> Result<Race, Box<dyn std::error::Error>> {
         let api_result = api.registrations(race_id).await?;
-        let racelog = RaceLog::load(race_id);
+        let racelog = RaceEvents::load(race_id);
 
         let tracks = api_result
             .iter()
@@ -72,28 +72,24 @@ impl Race {
 
         let racers = api_result
             .into_iter()
-            .map(|racer| {
-                let (start, finish) = racer
-                    .start_number
-                    .and_then(|num| racelog.stored_time_for(num))
-                    .map(|record| (Some(record.start), Some(record.finish)))
-                    .unwrap_or((None, None));
-
-                Racer {
-                    id: racer.id,
-                    start_number: racer.start_number.unwrap_or(0),
-                    tag: racer.tag_id.unwrap_or("".to_string()),
-                    first_name: racer.first_name,
-                    last_name: racer.last_name,
-                    track: racer.track.name,
-                    categories: racer
-                        .categories
-                        .into_iter()
-                        .map(|category| category.name)
-                        .collect(),
-                    start,
-                    finish,
-                }
+            .map(|racer| Racer {
+                id: racer.id,
+                start_number: racer.start_number.unwrap_or(0),
+                tag: racer.tag_id.unwrap_or("".to_string()),
+                first_name: racer.first_name,
+                last_name: racer.last_name,
+                track: racer.track.name.clone(),
+                categories: racer
+                    .categories
+                    .into_iter()
+                    .map(|category| category.name)
+                    .collect(),
+                start: racelog.get_track_start(&racer.track.name),
+                finish: if let Some(start_number) = racer.start_number {
+                    racelog.get_finish_time_for(start_number)
+                } else {
+                    None
+                },
             })
             .collect();
 
@@ -110,6 +106,7 @@ impl Race {
         for racer in self.racers.iter_mut() {
             if racer.track == track {
                 racer.start = Some(Utc::now());
+                self.log.borrow_mut().log_start(&track, Utc::now());
             }
         }
     }
@@ -119,8 +116,12 @@ impl Race {
         F: for<'a> FnMut(&&'a mut Racer) -> bool,
     {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
-        racer.finish = Some(Utc::now());
-        self.log.borrow_mut().log(racer);
+        let finish_time = Utc::now();
+
+        racer.finish = Some(finish_time);
+        self.log
+            .borrow_mut()
+            .log_finish(racer.start_number, finish_time);
         Ok(())
     }
 
