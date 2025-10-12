@@ -39,8 +39,8 @@ pub fn Racers(race: Race) -> Element {
     let sorter = use_signal(|| Sorter::<RacerField>::new(RacerField::StartNumber));
 
     let mut sorted = race.racers.clone();
-    let field = sorter.read().active;
-    sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Racer::cmp_by));
+    let field = sorter().active;
+    sorted.sort_by(|a, b| sorter().cmp_by(a, b, field, Racer::cmp_by));
 
     rsx! {
         div { class: "overflow-y-scroll",
@@ -66,7 +66,7 @@ pub fn Racers(race: Race) -> Element {
                 tbody {
 
                     for racer in sorted.iter() {
-                        if (selected_category_id.read().clone())
+                        if (selected_category_id().clone())
                             .is_none_or(|cat_id| racer.categories.contains(&cat_id))
                         {
                             tr {

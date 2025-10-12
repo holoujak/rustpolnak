@@ -24,7 +24,7 @@ pub fn Th<F: Copy + Eq + std::hash::Hash + 'static>(props: ThProps<F>) -> Elemen
             },
             {props.children}
             {
-                let s = sorter.read();
+                let s = sorter();
                 if s.active == field {
                     match s.direction {
                         Direction::Asc => rsx! {

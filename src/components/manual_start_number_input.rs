@@ -11,7 +11,7 @@ pub fn ManualStartNumberInput() -> Element {
             class: "mb-1",
             onsubmit: move |event| {
                 event.prevent_default();
-                if let Ok(start_number) = start_number.read().parse() {
+                if let Ok(start_number) = start_number().parse() {
                     use_coroutine_handle::<Action>()
                         .send(Action::FinishByStartNumber(start_number));
                 }
@@ -25,7 +25,7 @@ pub fn ManualStartNumberInput() -> Element {
                 onkeydown: move |event| {
                     let key = event.key().to_string();
                     if key.chars().all(|c| c.is_ascii_digit()) {
-                        let current_start_number = start_number.read().clone();
+                        let current_start_number = start_number().clone();
                         start_number.set(current_start_number + &key);
                     } else if event.key() != Key::Enter {
                         event.prevent_default();
