@@ -335,3 +335,113 @@ impl Race {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::race::*;
+
+    #[test]
+    fn test_calculate_track_rank() {
+        let track = Track("Track 1".to_string());
+
+        // define finish times
+        let start = Utc::now();
+        let best = start + chrono::Duration::seconds(10);
+        let shared = start + chrono::Duration::seconds(15);
+        let best_wrong_cat = start + chrono::Duration::seconds(1);
+
+        let racers = vec![
+            // 3. place with same time as 2, but higher start number
+            Racer {
+                id: 2,
+                start_number: StartNumber(200),
+                tag: "tag2".into(),
+                first_name: "Bob".into(),
+                last_name: "Jones".into(),
+                track: track.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: Some(shared),
+                time: Some(shared.signed_duration_since(start)),
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+            // 2. place
+            Racer {
+                id: 2,
+                start_number: StartNumber(5),
+                tag: "tag4".into(),
+                first_name: "Liam".into(),
+                last_name: "Davis".into(),
+                track: track.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: Some(shared),
+                time: Some(shared.signed_duration_since(start)),
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+            // Did not finish
+            Racer {
+                id: 3,
+                start_number: StartNumber(3),
+                tag: "tag3".into(),
+                first_name: "Charlie".into(),
+                last_name: "Brown".into(),
+                track: track.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: None,
+                time: None,
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+            // winner with best time
+            Racer {
+                id: 1,
+                start_number: StartNumber(50),
+                tag: "tag1".into(),
+                first_name: "Alice".into(),
+                last_name: "Smith".into(),
+                track: track.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: Some(best),
+                time: Some(best.signed_duration_since(start)),
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+            // winner, but different category
+            Racer {
+                id: 3,
+                start_number: StartNumber(30),
+                tag: "tag3".into(),
+                first_name: "John".into(),
+                last_name: "Doe".into(),
+                track: Track("Different track".to_string()),
+                categories: vec![],
+                start: Some(start),
+                finish: Some(best_wrong_cat),
+                time: Some(best_wrong_cat.signed_duration_since(start)),
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+        ];
+
+        let mut race = Race {
+            id: 1,
+            racers,
+            categories: vec![],
+            tracks: vec![track.clone()],
+            log: Rc::new(RefCell::new(RaceEvents::load(100000))),
+        };
+
+        race.calculate_track_rank(&track);
+
+        assert_eq!(Some(3), race.racers[0].track_rank);
+        assert_eq!(Some(2), race.racers[1].track_rank);
+        assert_eq!(None, race.racers[2].track_rank);
+        assert_eq!(Some(1), race.racers[3].track_rank);
+        assert_eq!(None, race.racers[4].track_rank);
+    }
+}
