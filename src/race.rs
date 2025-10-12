@@ -72,18 +72,25 @@ fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<String> {
     tracks
 }
 
+/// Extract all unique categories and sort them
+fn extract_categories(api_result: &[crate::restclient::Racer]) -> Vec<String> {
+    let mut categories = HashSet::new();
+    for racer in api_result {
+        for category in &racer.categories {
+            categories.insert(category.name.clone());
+        }
+    }
+    let mut categories: Vec<String> = categories.into_iter().collect();
+    categories.sort();
+    categories
+}
+
 impl Race {
     pub async fn load(api: RaceRestAPI, race_id: u32) -> Result<Race, Box<dyn std::error::Error>> {
         let api_result = api.registrations(race_id).await?;
         let racelog = RaceEvents::load(race_id);
         let tracks = extract_tracks(&api_result);
-
-        let mut categories = HashSet::new();
-        for racer in &api_result {
-            for category in &racer.categories {
-                categories.insert(category.name.clone());
-            }
-        }
+        let categories = extract_categories(&api_result);
 
         let racers = api_result
             .into_iter()
@@ -111,7 +118,7 @@ impl Race {
         Ok(Race {
             id: race_id,
             racers,
-            categories: categories.into_iter().collect(),
+            categories,
             tracks,
             tracks_rank: HashMap::new(),
             log: RefCell::new(racelog).into(),
