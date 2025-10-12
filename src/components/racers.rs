@@ -1,4 +1,4 @@
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Local, TimeDelta, Utc};
 use dioxus::prelude::*;
 
 use crate::{
@@ -16,6 +16,21 @@ fn format_time(datetime: Option<DateTime<Utc>>) -> String {
             .to_string(),
         None => "".to_string(),
     }
+}
+
+fn format_time_delta(delta: Option<TimeDelta>) -> String {
+    let delta = match delta {
+        Some(delta) => delta,
+        _ => return "".to_string(),
+    };
+
+    let total_millis = delta.num_milliseconds();
+    let hours = total_millis / 1000 / 3600;
+    let mins = (total_millis / 1000 / 60) % 60;
+    let secs = (total_millis / 1000) % 60;
+    let millis = total_millis % 1000;
+
+    format!("{hours:02}:{mins:02}:{secs:02}.{millis:03}")
 }
 
 #[component]
@@ -38,6 +53,7 @@ pub fn Racers(race: Race) -> Element {
                         Th { sorter, field: RacerField::Track, "Track" }
                         th { "Start" }
                         th { "Finish" }
+                        Th { sorter, field: RacerField::Time, "Time" }
                         th { "Track rank" }
                         th {
                             CategoriesList {
@@ -60,6 +76,7 @@ pub fn Racers(race: Race) -> Element {
                                 td { "{racer.track}" }
                                 td { "{format_time(racer.start)}" }
                                 td { "{format_time(racer.finish)}" }
+                                td { "{format_time_delta(racer.time)}" }
                                 td {
                                     "{race.tracks_rank.get(&racer.track)
                                     .and_then(|m| m.get(&racer.start_number))
