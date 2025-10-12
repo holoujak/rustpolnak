@@ -15,7 +15,7 @@ pub fn RaceComponent(race: Race) -> Element {
                 TrackStart { track: track.clone() }
             }
         }
-        Racers { race: race.clone() }
         ManualStartNumberInput {}
+        Racers { race: race.clone() }
     }
 }

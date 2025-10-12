@@ -8,6 +8,7 @@ pub fn ManualStartNumberInput() -> Element {
 
     rsx! {
         form {
+            class: "mb-1",
             onsubmit: move |event| {
                 event.prevent_default();
                 if let Ok(start_number) = start_number.read().parse() {
@@ -18,7 +19,7 @@ pub fn ManualStartNumberInput() -> Element {
             },
             input {
                 class: "form-control",
-                placeholder: "Start number",
+                placeholder: "Finish racer by start number",
                 r#type: "number",
                 value: start_number,
                 onkeydown: move |event| {
