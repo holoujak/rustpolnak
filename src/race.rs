@@ -41,6 +41,8 @@ pub enum RacerField {
     LastName,
     TagId,
     Track,
+    Start,
+    Finish,
     Time,
 }
 
@@ -52,6 +54,8 @@ impl Racer {
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
             RacerField::Track => self.track.cmp(&other.track),
+            RacerField::Start => self.start.cmp(&other.start),
+            RacerField::Finish => self.finish.cmp(&other.finish),
             RacerField::Time => self.time.cmp(&other.time),
         }
     }

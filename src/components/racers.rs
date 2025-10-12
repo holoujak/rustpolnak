@@ -51,8 +51,8 @@ pub fn Racers(race: Race) -> Element {
                         Th { sorter, field: RacerField::FirstName, "First name" }
                         Th { sorter, field: RacerField::LastName, "Last name" }
                         Th { sorter, field: RacerField::Track, "Track" }
-                        th { "Start" }
-                        th { "Finish" }
+                        Th { sorter, field: RacerField::Start, "Start" }
+                        Th { sorter, field: RacerField::Finish, "Finish" }
                         Th { sorter, field: RacerField::Time, "Time" }
                         th { "Track rank" }
                         th {
