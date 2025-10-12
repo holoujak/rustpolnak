@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use chrono::{Duration, TimeDelta};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
@@ -30,6 +31,7 @@ pub struct Racer {
     pub categories: Vec<String>,
     pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
+    pub time: Option<Duration>,
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
@@ -39,6 +41,7 @@ pub enum RacerField {
     LastName,
     TagId,
     Track,
+    Time,
 }
 
 impl Racer {
@@ -49,6 +52,7 @@ impl Racer {
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
             RacerField::Track => self.track.cmp(&other.track),
+            RacerField::Time => self.time.cmp(&other.time),
         }
     }
 }
@@ -85,6 +89,16 @@ fn extract_categories(api_result: &[crate::restclient::Racer]) -> Vec<String> {
     categories
 }
 
+fn calculate_time(
+    start: Option<DateTime<Utc>>,
+    finish: Option<DateTime<Utc>>,
+) -> Option<TimeDelta> {
+    match (start, finish) {
+        (Some(start), Some(finish)) => Some(finish.signed_duration_since(start)),
+        _ => None,
+    }
+}
+
 impl Race {
     pub async fn load(api: RaceRestAPI, race_id: u32) -> Result<Race, Box<dyn std::error::Error>> {
         let api_result = api.registrations(race_id).await?;
@@ -94,24 +108,30 @@ impl Race {
 
         let racers = api_result
             .into_iter()
-            .map(|racer| Racer {
-                id: racer.id,
-                start_number: racer.start_number.unwrap_or(0),
-                tag: racer.tag_id.unwrap_or("".to_string()),
-                first_name: racer.first_name,
-                last_name: racer.last_name,
-                track: racer.track.name.clone(),
-                categories: racer
-                    .categories
-                    .into_iter()
-                    .map(|category| category.name)
-                    .collect(),
-                start: racelog.get_track_start(&racer.track.name),
-                finish: if let Some(start_number) = racer.start_number {
+            .map(|racer| {
+                let start = racelog.get_track_start(&racer.track.name);
+                let finish = if let Some(start_number) = racer.start_number {
                     racelog.get_finish_time_for(start_number)
                 } else {
                     None
-                },
+                };
+
+                Racer {
+                    id: racer.id,
+                    start_number: racer.start_number.unwrap_or(0),
+                    tag: racer.tag_id.unwrap_or("".to_string()),
+                    first_name: racer.first_name,
+                    last_name: racer.last_name,
+                    track: racer.track.name.clone(),
+                    categories: racer
+                        .categories
+                        .into_iter()
+                        .map(|category| category.name)
+                        .collect(),
+                    start,
+                    finish,
+                    time: calculate_time(start, finish),
+                }
             })
             .collect();
 
@@ -141,6 +161,7 @@ impl Race {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
         let finish_time = Utc::now();
         racer.finish = Some(finish_time);
+        racer.time = calculate_time(racer.start, racer.finish);
         self.log
             .borrow_mut()
             .log_finish(racer.start_number, finish_time);
