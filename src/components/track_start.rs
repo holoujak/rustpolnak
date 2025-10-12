@@ -10,8 +10,12 @@ pub fn TrackStart(track: String) -> Element {
     let track2 = track.clone();
 
     rsx! {
-        div { class: "input-group", style: "width: 300px",
-            span { class: "input-group-text", "{track}" }
+        div { class: "input-group", style: "width: 400px",
+            span {
+                class: "input-group-text justify-content-end",
+                style: "width: 150px",
+                "{track}"
+            }
             TimeInput {
                 time: start,
                 editing,
