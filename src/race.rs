@@ -139,14 +139,16 @@ impl Race {
             })
             .collect();
 
-        Ok(Race {
+        let mut race = Race {
             id: race_id,
             racers,
             categories,
             tracks,
             tracks_rank: HashMap::new(),
             log: RefCell::new(racelog).into(),
-        })
+        };
+        race.map_start_number_to_track_rank();
+        Ok(race)
     }
 
     pub fn start(&mut self, track: String, time: DateTime<Utc>) {
