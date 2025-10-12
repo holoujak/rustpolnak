@@ -64,6 +64,7 @@ fn handle_action(selected_race: &mut Signal<SelectedRace>, action: Action) {
 pub fn App() -> Element {
     let mut selected_race = use_signal(|| SelectedRace::None);
     let config = use_context::<Config>();
+    let mut show_starts = use_signal(|| true);
 
     use_coroutine(move |mut actions_rx: UnboundedReceiver<Action>| {
         let config = config.clone();
@@ -90,6 +91,13 @@ pub fn App() -> Element {
 
     rsx! {
         div { class: "d-flex column-gap-1 mb-1",
+            button {
+                class: "btn btn-light",
+                dangerous_inner_html: iconify::svg!("mdi:schedule"),
+                onclick: move |_| {
+                    show_starts.toggle();
+                },
+            }
             RacesList { selected_race }
             match &*selected_race.read() {
                 Some(Ok(race)) => rsx! {
@@ -101,9 +109,11 @@ pub fn App() -> Element {
 
         match &*selected_race.read() {
             Some(Ok(race)) => rsx! {
-                div { class: "d-flex flex-row column-gap-1 mb-1",
-                    for track in race.clone().tracks {
-                        TrackStart { track: track.clone() }
+                if show_starts() {
+                    div { class: "d-flex flex-row column-gap-1 mb-1",
+                        for track in race.clone().tracks {
+                            TrackStart { track: track.clone() }
+                        }
                     }
                 }
                 ManualStartNumberInput {}
