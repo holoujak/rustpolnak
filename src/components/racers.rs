@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 
 use crate::{
     components::categories_list::CategoriesList,
-    race::{Race, Racer, RacerField},
+    race::{Category, Race, Racer, RacerField},
     sort_table::Th,
     sorter::Sorter,
 };
@@ -35,7 +35,7 @@ fn format_time_delta(delta: Option<TimeDelta>) -> String {
 
 #[component]
 pub fn Racers(race: Race) -> Element {
-    let selected_category_id = use_signal(|| Option::<String>::None);
+    let selected_category_id = use_signal(|| Option::<Category>::None);
     let sorter = use_signal(|| Sorter::<RacerField>::new(RacerField::StartNumber));
 
     let mut sorted = race.racers.clone();

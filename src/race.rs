@@ -32,11 +32,20 @@ impl FromStr for StartNumber {
     }
 }
 
+#[derive(Hash, Clone, PartialEq, Eq, Debug, PartialOrd, Ord)]
+pub struct Category(pub String);
+
+impl fmt::Display for Category {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Race {
     pub id: u32,
     pub racers: Vec<Racer>,
-    pub categories: Vec<String>,
+    pub categories: Vec<Category>,
     pub tracks: Vec<String>,
     pub tracks_rank: HashMap<String, HashMap<StartNumber, u32>>, // track -> (start_number -> rank)
     log: Rc<RefCell<RaceEvents>>,
@@ -50,7 +59,7 @@ pub struct Racer {
     pub first_name: String,
     pub last_name: String,
     pub track: String,
-    pub categories: Vec<String>,
+    pub categories: Vec<Category>,
     pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
     pub time: Option<Duration>,
@@ -103,14 +112,14 @@ fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<String> {
 }
 
 /// Extract all unique categories and sort them
-fn extract_categories(api_result: &[crate::restclient::Racer]) -> Vec<String> {
+fn extract_categories(api_result: &[crate::restclient::Racer]) -> Vec<Category> {
     let mut categories = HashSet::new();
     for racer in api_result {
         for category in &racer.categories {
-            categories.insert(category.name.clone());
+            categories.insert(Category(category.name.clone()));
         }
     }
-    let mut categories: Vec<String> = categories.into_iter().collect();
+    let mut categories: Vec<Category> = categories.into_iter().collect();
     categories.sort();
     categories
 }
@@ -151,7 +160,7 @@ impl Race {
                     categories: racer
                         .categories
                         .into_iter()
-                        .map(|category| category.name)
+                        .map(|category| Category(category.name))
                         .collect(),
                     start,
                     finish,
