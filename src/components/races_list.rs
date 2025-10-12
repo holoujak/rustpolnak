@@ -34,7 +34,7 @@ pub fn RacesList(selected_race: SignalRace) -> Element {
         match &*races.read() {
             Some(Ok(races)) => rsx! {
                 select {
-                    class: "form-select mb-1",
+                    class: "form-select",
                     onchange: move |e| {
                         e.prevent_default();
                         let race_id = e.value().parse::<u32>().ok().unwrap();

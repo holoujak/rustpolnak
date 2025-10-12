@@ -75,9 +75,9 @@ pub fn UploadResults(race: Race) -> Element {
 
     rsx! {
         button {
-            class: ["btn btn-primary ms-auto", classes].join(" "),
+            class: ["btn btn-primary", classes].join(" "),
             onclick: move |_evt| { upload_results(&race, upload_state, api.clone()) },
-            "Upload results"
+            dangerous_inner_html: iconify::svg!("mdi:upload"),
         }
     }
 }

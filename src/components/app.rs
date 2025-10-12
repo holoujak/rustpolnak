@@ -5,7 +5,7 @@ use tokio::sync::broadcast;
 use tracing::info;
 
 use crate::{
-    components::{race::RaceComponent, races_list::RacesList},
+    components::{race::RaceComponent, races_list::RacesList, upload_results::UploadResults},
     config::Config,
     race::Race,
     rfid_reader,
@@ -86,21 +86,28 @@ pub fn App() -> Element {
     });
 
     rsx! {
-        div {
+        div { class: "d-flex column-gap-1 mb-1",
             RacesList { selected_race }
             match &*selected_race.read() {
                 Some(Ok(race)) => rsx! {
-                    RaceComponent { race: race.clone() }
+                    UploadResults { race: race.clone() }
                 },
-                Some(Err(err)) => rsx! {
-                    p { class: "alert alert-danger", "{err:#?}" }
-                },
-                None => rsx! {
-                    div { class: "d-flex justify-content-center align-items-center vh-100",
-                        img { src: LOADING }
-                    }
-                },
+                _ => rsx! {},
             }
+        }
+
+        match &*selected_race.read() {
+            Some(Ok(race)) => rsx! {
+                RaceComponent { race: race.clone() }
+            },
+            Some(Err(err)) => rsx! {
+                p { class: "alert alert-danger", "{err:#?}" }
+            },
+            None => rsx! {
+                div { class: "d-flex justify-content-center align-items-center vh-100",
+                    img { src: LOADING }
+                }
+            },
         }
     }
 }
