@@ -1,30 +1,23 @@
+use std::hash::Hash;
+
 use crate::sorter::{Direction, Sorter};
 use dioxus::prelude::*;
 
-/// Table header component that toggles sorting when clicked
-#[derive(Props, PartialEq, Clone)]
-pub struct ThProps<F: Copy + Eq + std::hash::Hash + 'static> {
-    pub sorter: Signal<Sorter<F>>,
-    pub field: F,
-    #[props(optional)]
-    pub filters: Option<Signal<std::collections::HashMap<F, String>>>,
-    pub children: Element,
-}
-
 /// Custom <Th> component that toggles sorting on click
-#[allow(non_snake_case)]
-pub fn Th<F: Copy + Eq + std::hash::Hash + 'static>(props: ThProps<F>) -> Element {
-    let mut sorter = props.sorter;
-    let filters = props.filters;
-    let field = props.field;
-
+#[component]
+pub fn Th<F: Copy + Eq + Hash + 'static>(
+    sorter: Signal<Sorter<F>>,
+    field: F,
+    filters: Option<Signal<std::collections::HashMap<F, String>>>,
+    children: Element,
+) -> Element {
     rsx! {
         th { role: "button",
             span {
                 onclick: move |_| {
                     sorter.write().toggle(field);
                 },
-                {props.children}
+                {children}
             }
 
             {
