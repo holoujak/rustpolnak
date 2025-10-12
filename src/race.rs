@@ -41,13 +41,21 @@ impl fmt::Display for Category {
     }
 }
 
+#[derive(Hash, Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
+pub struct Track(pub String);
+impl fmt::Display for Track {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Race {
     pub id: u32,
     pub racers: Vec<Racer>,
     pub categories: Vec<Category>,
-    pub tracks: Vec<String>,
-    pub tracks_rank: HashMap<String, HashMap<StartNumber, u32>>, // track -> (start_number -> rank)
+    pub tracks: Vec<Track>,
+    pub tracks_rank: HashMap<Track, HashMap<StartNumber, u32>>,
     log: Rc<RefCell<RaceEvents>>,
 }
 
@@ -58,7 +66,7 @@ pub struct Racer {
     pub tag: String,
     pub first_name: String,
     pub last_name: String,
-    pub track: String,
+    pub track: Track,
     pub categories: Vec<Category>,
     pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
@@ -84,7 +92,7 @@ impl Racer {
             RacerField::FirstName => self.first_name.cmp(&other.first_name),
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
-            RacerField::Track => self.track.cmp(&other.track),
+            RacerField::Track => self.track.0.cmp(&other.track.0),
             RacerField::Start => self.start.cmp(&other.start),
             RacerField::Finish => self.finish.cmp(&other.finish),
             RacerField::Time => self.time.cmp(&other.time),
@@ -93,16 +101,17 @@ impl Racer {
 }
 
 /// Extract all unique tracks and sort them
-fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<String> {
-    let mut tracks: Vec<String> = api_result
+fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<Track> {
+    let mut tracks: Vec<Track> = api_result
         .iter()
-        .map(|racer| racer.track.name.clone())
+        .map(|racer| Track(racer.track.name.clone()))
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
 
     tracks.sort_by_key(|track| {
         track
+            .0
             .split_whitespace()
             .next()
             .and_then(|s| s.parse::<u32>().ok())
@@ -146,7 +155,8 @@ impl Race {
             .map(|racer| {
                 let start_number = racer.start_number.map(StartNumber);
 
-                let start = racelog.get_track_start(&racer.track.name);
+                let track = Track(racer.track.name.clone());
+                let start = racelog.get_track_start(&track);
                 let finish =
                     start_number.and_then(|start_number| racelog.get_finish_time_for(start_number));
 
@@ -156,7 +166,7 @@ impl Race {
                     tag: racer.tag_id.unwrap_or("".to_string()),
                     first_name: racer.first_name,
                     last_name: racer.last_name,
-                    track: racer.track.name.clone(),
+                    track,
                     categories: racer
                         .categories
                         .into_iter()
@@ -179,7 +189,7 @@ impl Race {
         })
     }
 
-    pub fn start(&mut self, track: String, time: DateTime<Utc>) {
+    pub fn start(&mut self, track: Track, time: DateTime<Utc>) {
         for racer in self.racers.iter_mut() {
             if racer.track == track {
                 racer.start = Some(time);
@@ -228,11 +238,11 @@ impl Race {
         }
     }
 
-    fn calculate_track_rank(&mut self, track: &str) {
+    fn calculate_track_rank(&mut self, track: &Track) {
         let mut finished: Vec<&Racer> = self
             .racers
             .iter()
-            .filter(|r| r.track == track)
+            .filter(|r| r.track == *track)
             .filter(|r| r.finish.is_some())
             .collect();
 
@@ -246,7 +256,7 @@ impl Race {
             a.start_number.0.cmp(&b.start_number.0)
         });
 
-        let current_track_rank = self.tracks_rank.entry(track.to_string()).or_default();
+        let current_track_rank = self.tracks_rank.entry(track.clone()).or_default();
 
         current_track_rank.clear(); // Clear previous rankings
 
