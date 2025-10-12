@@ -111,7 +111,7 @@ pub fn App() -> Element {
             match &*selected_race.read() {
                 Some(Ok(race)) => rsx! {
                     if show_starts() {
-                        div { class: "d-flex flex-row column-gap-1 mb-1",
+                        div { class: "d-flex flex-column row-gap-1 mb-1",
                             for track in race.clone().tracks {
                                 TrackStart { track: track.clone() }
                             }
