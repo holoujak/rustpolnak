@@ -10,7 +10,7 @@ use crate::{
         track_start::TrackStart, upload_results::UploadResults,
     },
     config::Config,
-    race::Race,
+    race::{Race, StartNumber},
     rfid_reader,
 };
 
@@ -21,7 +21,7 @@ const LOADING: Asset = asset!("/assets/loading.webp");
 #[derive(Debug)]
 pub enum Action {
     Start(String, DateTime<Utc>),
-    FinishByStartNumber(u32),
+    FinishByStartNumber(StartNumber),
 }
 
 fn handle_rfid_event(selected_race: &mut Signal<SelectedRace>, event: rfid_reader::Event) {

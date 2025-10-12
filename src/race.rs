@@ -1,14 +1,36 @@
 use chrono::{DateTime, Utc};
 use chrono::{Duration, TimeDelta};
+use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fmt;
+use std::num::ParseIntError;
 use std::rc::Rc;
+use std::str::FromStr;
 use tracing::error;
 
 use crate::race_events::RaceEvents;
 use crate::restclient::RaceRestAPI;
+
+#[derive(Hash, Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
+pub struct StartNumber(u32);
+
+impl fmt::Display for StartNumber {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl FromStr for StartNumber {
+    type Err = ParseIntError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let parsed = s.parse()?;
+        Ok(StartNumber(parsed))
+    }
+}
 
 #[derive(Clone, PartialEq)]
 pub struct Race {
@@ -16,14 +38,14 @@ pub struct Race {
     pub racers: Vec<Racer>,
     pub categories: Vec<String>,
     pub tracks: Vec<String>,
-    pub tracks_rank: HashMap<String, HashMap<u32, u32>>, // track -> (start_number -> rank)
+    pub tracks_rank: HashMap<String, HashMap<StartNumber, u32>>, // track -> (start_number -> rank)
     log: Rc<RefCell<RaceEvents>>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Racer {
     pub id: u32,
-    pub start_number: u32,
+    pub start_number: StartNumber,
     pub tag: String,
     pub first_name: String,
     pub last_name: String,
@@ -49,7 +71,7 @@ pub enum RacerField {
 impl Racer {
     pub fn cmp_by(&self, other: &Self, field: RacerField) -> Ordering {
         match field {
-            RacerField::StartNumber => self.start_number.cmp(&other.start_number),
+            RacerField::StartNumber => self.start_number.0.cmp(&other.start_number.0),
             RacerField::FirstName => self.first_name.cmp(&other.first_name),
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
@@ -113,16 +135,15 @@ impl Race {
         let racers = api_result
             .into_iter()
             .map(|racer| {
+                let start_number = racer.start_number.map(StartNumber);
+
                 let start = racelog.get_track_start(&racer.track.name);
-                let finish = if let Some(start_number) = racer.start_number {
-                    racelog.get_finish_time_for(start_number)
-                } else {
-                    None
-                };
+                let finish =
+                    start_number.and_then(|start_number| racelog.get_finish_time_for(start_number));
 
                 Racer {
                     id: racer.id,
-                    start_number: racer.start_number.unwrap_or(0),
+                    start_number: StartNumber(racer.start_number.unwrap_or(0)),
                     tag: racer.tag_id.unwrap_or("".to_string()),
                     first_name: racer.first_name,
                     last_name: racer.last_name,
@@ -168,17 +189,17 @@ impl Race {
         racer.time = calculate_time(racer.start, racer.finish);
         self.log
             .borrow_mut()
-            .log_finish(racer.start_number, finish_time);
+            .log_finish(racer.start_number.clone(), finish_time);
         self.map_start_number_to_track_rank();
         Ok(())
     }
 
-    pub fn finish_start_number(&mut self, start_number: u32) {
+    pub fn finish_start_number(&mut self, start_number: StartNumber) {
         if self
             .finish(|r| r.start_number == start_number && r.start.is_some() && r.finish.is_none())
             .is_err()
         {
-            error!("Racer with starting number {start_number} not found.");
+            error!("Racer with starting number {start_number:?} not found.");
         }
     }
 
@@ -213,7 +234,7 @@ impl Race {
             }
 
             // in case the finish times are equal, sort by start number
-            a.start_number.cmp(&b.start_number)
+            a.start_number.0.cmp(&b.start_number.0)
         });
 
         let current_track_rank = self.tracks_rank.entry(track.to_string()).or_default();
@@ -221,7 +242,7 @@ impl Race {
         current_track_rank.clear(); // Clear previous rankings
 
         for (rank, r) in finished.into_iter().enumerate() {
-            current_track_rank.insert(r.start_number, (rank + 1).try_into().unwrap());
+            current_track_rank.insert(r.start_number.clone(), (rank + 1).try_into().unwrap());
         }
     }
 }
