@@ -5,7 +5,10 @@ use tokio::sync::broadcast;
 use tracing::info;
 
 use crate::{
-    components::{race::RaceComponent, races_list::RacesList, upload_results::UploadResults},
+    components::{
+        manual_start_number_input::ManualStartNumberInput, racers::Racers, races_list::RacesList,
+        track_start::TrackStart, upload_results::UploadResults,
+    },
     config::Config,
     race::Race,
     rfid_reader,
@@ -98,7 +101,13 @@ pub fn App() -> Element {
 
         match &*selected_race.read() {
             Some(Ok(race)) => rsx! {
-                RaceComponent { race: race.clone() }
+                div { class: "d-flex flex-row column-gap-1 mb-1",
+                    for track in race.clone().tracks {
+                        TrackStart { track: track.clone() }
+                    }
+                }
+                ManualStartNumberInput {}
+                Racers { race: race.clone() }
             },
             Some(Err(err)) => rsx! {
                 p { class: "alert alert-danger", "{err:#?}" }
