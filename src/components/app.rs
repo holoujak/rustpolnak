@@ -90,43 +90,45 @@ pub fn App() -> Element {
     });
 
     rsx! {
-        div { class: "d-flex column-gap-1 mb-1",
-            button {
-                class: "btn btn-light",
-                dangerous_inner_html: iconify::svg!("mdi:schedule"),
-                onclick: move |_| {
-                    show_starts.toggle();
-                },
+        div { class: "d-flex flex-column", style: "height: 100vh",
+            div { class: "d-flex column-gap-1 mb-1",
+                button {
+                    class: "btn btn-light",
+                    dangerous_inner_html: iconify::svg!("mdi:schedule"),
+                    onclick: move |_| {
+                        show_starts.toggle();
+                    },
+                }
+                RacesList { selected_race }
+                match &*selected_race.read() {
+                    Some(Ok(race)) => rsx! {
+                        UploadResults { race: race.clone() }
+                    },
+                    _ => rsx! {},
+                }
             }
-            RacesList { selected_race }
+
             match &*selected_race.read() {
                 Some(Ok(race)) => rsx! {
-                    UploadResults { race: race.clone() }
-                },
-                _ => rsx! {},
-            }
-        }
-
-        match &*selected_race.read() {
-            Some(Ok(race)) => rsx! {
-                if show_starts() {
-                    div { class: "d-flex flex-row column-gap-1 mb-1",
-                        for track in race.clone().tracks {
-                            TrackStart { track: track.clone() }
+                    if show_starts() {
+                        div { class: "d-flex flex-row column-gap-1 mb-1",
+                            for track in race.clone().tracks {
+                                TrackStart { track: track.clone() }
+                            }
                         }
                     }
-                }
-                ManualStartNumberInput {}
-                Racers { race: race.clone() }
-            },
-            Some(Err(err)) => rsx! {
-                p { class: "alert alert-danger", "{err:#?}" }
-            },
-            None => rsx! {
-                div { class: "d-flex justify-content-center align-items-center vh-100",
-                    img { src: LOADING }
-                }
-            },
+                    ManualStartNumberInput {}
+                    Racers { race: race.clone() }
+                },
+                Some(Err(err)) => rsx! {
+                    p { class: "alert alert-danger", "{err:#?}" }
+                },
+                None => rsx! {
+                    div { class: "d-flex justify-content-center align-items-center vh-100",
+                        img { src: LOADING }
+                    }
+                },
+            }
         }
     }
 }

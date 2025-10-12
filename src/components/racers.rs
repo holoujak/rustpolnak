@@ -28,46 +28,48 @@ pub fn Racers(race: Race) -> Element {
     sorted.sort_by(|a, b| sorter.read().cmp_by(a, b, field, Racer::cmp_by));
 
     rsx! {
-        table { class: "table table-striped table-hover table-sm",
-            thead { class: "table-dark",
-                tr {
-                    Th { sorter, field: RacerField::StartNumber, "Start number" }
-                    Th { sorter, field: RacerField::FirstName, "First name" }
-                    Th { sorter, field: RacerField::LastName, "Last name" }
-                    Th { sorter, field: RacerField::Track, "Track" }
-                    th { "Start" }
-                    th { "Finish" }
-                    th { "Track rank" }
-                    th {
-                        CategoriesList {
-                            categories: race.categories,
-                            selected_category_id,
+        div { class: "overflow-y-scroll",
+            table { class: "table table-striped table-hover table-sm",
+                thead { class: "table-dark",
+                    tr {
+                        Th { sorter, field: RacerField::StartNumber, "Start number" }
+                        Th { sorter, field: RacerField::FirstName, "First name" }
+                        Th { sorter, field: RacerField::LastName, "Last name" }
+                        Th { sorter, field: RacerField::Track, "Track" }
+                        th { "Start" }
+                        th { "Finish" }
+                        th { "Track rank" }
+                        th {
+                            CategoriesList {
+                                categories: race.categories,
+                                selected_category_id,
+                            }
                         }
                     }
                 }
-            }
-            tbody {
+                tbody {
 
-                for racer in sorted.iter() {
-                    if (selected_category_id.read().clone())
-                        .is_none_or(|cat_id| racer.categories.contains(&cat_id))
-                    {
-                        tr {
-                            td { "{racer.start_number}" }
-                            td { "{racer.first_name}" }
-                            td { "{racer.last_name}" }
-                            td { "{racer.track}" }
-                            td { "{format_time(racer.start)}" }
-                            td { "{format_time(racer.finish)}" }
-                            td {
-                                "{race.tracks_rank.get(&racer.track)
+                    for racer in sorted.iter() {
+                        if (selected_category_id.read().clone())
+                            .is_none_or(|cat_id| racer.categories.contains(&cat_id))
+                        {
+                            tr {
+                                td { "{racer.start_number}" }
+                                td { "{racer.first_name}" }
+                                td { "{racer.last_name}" }
+                                td { "{racer.track}" }
+                                td { "{format_time(racer.start)}" }
+                                td { "{format_time(racer.finish)}" }
+                                td {
+                                    "{race.tracks_rank.get(&racer.track)
                                     .and_then(|m| m.get(&racer.start_number))
                                     .map(|rank| rank.to_string())
                                     .unwrap_or_default() }"
-                            }
-                            td {
-                                for category in racer.categories.clone() {
-                                    "{category} "
+                                }
+                                td {
+                                    for category in racer.categories.clone() {
+                                        "{category} "
+                                    }
                                 }
                             }
                         }
