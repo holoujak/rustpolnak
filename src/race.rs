@@ -53,17 +53,30 @@ impl Racer {
     }
 }
 
+/// Extract all unique tracks and sort them
+fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<String> {
+    let mut tracks: Vec<String> = api_result
+        .iter()
+        .map(|racer| racer.track.name.clone())
+        .collect::<HashSet<_>>()
+        .into_iter()
+        .collect();
+
+    tracks.sort_by_key(|track| {
+        track
+            .split_whitespace()
+            .next()
+            .and_then(|s| s.parse::<u32>().ok())
+            .unwrap_or(0)
+    });
+    tracks
+}
+
 impl Race {
     pub async fn load(api: RaceRestAPI, race_id: u32) -> Result<Race, Box<dyn std::error::Error>> {
         let api_result = api.registrations(race_id).await?;
         let racelog = RaceEvents::load(race_id);
-
-        let tracks = api_result
-            .iter()
-            .map(|racer| racer.track.name.clone())
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect();
+        let tracks = extract_tracks(&api_result);
 
         let mut categories = HashSet::new();
         for racer in &api_result {
