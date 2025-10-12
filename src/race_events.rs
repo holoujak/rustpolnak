@@ -11,6 +11,7 @@ use tracing::warn;
 
 use crate::config::app_dir;
 use crate::race::StartNumber;
+use crate::race::Track;
 
 #[derive(Debug, Deserialize, Serialize)]
 struct RacerFinish {
@@ -20,7 +21,7 @@ struct RacerFinish {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct TrackStart {
-    track: String,
+    track: Track,
     start: DateTime<Utc>,
 }
 
@@ -47,7 +48,7 @@ impl PartialEq for RaceEvents {
 
 pub struct RaceEvents {
     writer: BufWriter<File>,
-    track_starts: HashMap<String, DateTime<Utc>>,
+    track_starts: HashMap<Track, DateTime<Utc>>,
     finish_times: HashMap<StartNumber, DateTime<Utc>>,
 }
 
@@ -83,11 +84,11 @@ impl RaceEvents {
         self.writer.flush().unwrap();
     }
 
-    pub fn log_start(&mut self, track: &str, start: DateTime<Utc>) {
+    pub fn log_start(&mut self, track: &Track, start: DateTime<Utc>) {
         let line = serde_json::to_string(&Event {
             timestamp: Utc::now(),
             event: EventType::TrackStart(TrackStart {
-                track: track.to_string(),
+                track: track.clone(),
                 start,
             }),
         })
@@ -100,7 +101,7 @@ impl RaceEvents {
         Some(*self.finish_times.get(&start_number)?)
     }
 
-    pub fn get_track_start(&self, track: &str) -> Option<DateTime<Utc>> {
+    pub fn get_track_start(&self, track: &Track) -> Option<DateTime<Utc>> {
         Some(*self.track_starts.get(track)?)
     }
 }
@@ -113,7 +114,7 @@ fn parse_event(line: Result<String, std::io::Error>) -> Result<EventType, std::i
 fn load_events(
     path: &PathBuf,
 ) -> (
-    HashMap<String, DateTime<Utc>>,
+    HashMap<Track, DateTime<Utc>>,
     HashMap<StartNumber, DateTime<Utc>>,
 ) {
     let mut track_starts = HashMap::new();

@@ -1,10 +1,13 @@
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 
-use crate::components::{app::Action, time_input::TimeInput};
+use crate::{
+    components::{app::Action, time_input::TimeInput},
+    race::Track,
+};
 
 #[component]
-pub fn TrackStart(track: String) -> Element {
+pub fn TrackStart(track: Track) -> Element {
     let mut start: Signal<Option<DateTime<Utc>>> = use_signal(|| None);
     let mut editing = use_signal(|| false);
     let track2 = track.clone();
