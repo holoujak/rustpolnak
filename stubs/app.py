@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional, List
+import random
 
 app = FastAPI()
 
@@ -70,35 +71,62 @@ def races() -> List[Event]:
 
 @app.get("/races/{race_id}/registrations")
 def registrations(race_id: int) -> List[Racer]:
-    return [
-        Racer(
-            id=1,
-            firstName="John",
-            lastName="Doe",
-            startNumber=None,
-            categories=[Category(id=92, name="A10", description=None)],
-            tagId="1234",
-            track=Track(id=25, name="10 Km", description=""),
-        ),
-        Racer(
-            id=2,
-            firstName="Carlos",
-            lastName="Smith",
-            startNumber=123,
-            categories=[Category(id=92, name="A10", description=None)],
-            tagId="1111",
-            track=Track(id=25, name="10 Km", description=""),
-        ),
-        Racer(
-            id=3,
-            firstName="Oioioi",
-            lastName="Boi",
-            startNumber=124,
-            categories=[Category(id=93, name="B4", description=None)],
-            tagId=None,
-            track=Track(id=25, name="4 Km", description=""),
-        ),
+    racers_count = 100
+    firstnames = [
+        "John",
+        "Jane",
+        "Alice",
+        "Bob",
+        "Tom",
+        "Sara",
+        "Mike",
+        "Emma",
+        "Liam",
+        "Olivia",
     ]
+    lastnames = [
+        "Doe",
+        "Smith",
+        "Brown",
+        "Johnson",
+        "Williams",
+        "Jones",
+        "Davis",
+        "Miller",
+        "Wilson",
+        "Taylor",
+    ]
+    tracks = [
+        Track(id=1, name="10 Km", description=""),
+        Track(id=2, name="4 Km", description=""),
+        Track(id=3, name="Dedska trat", description=""),
+    ]
+    categories = [
+        Category(id=1, name="A10", description=None),
+        Category(id=2, name="B4", description=None),
+        Category(id=3, name="C4", description=None),
+        Category(id=4, name="D10", description=None),
+        Category(id=5, name="A10", description=None),
+        Category(id=6, name="J4", description=None),
+        Category(id=7, name="Deti", description=None),
+    ]
+
+    random.seed(race_id)
+    racers = []
+    for i in range(racers_count):
+        num_categories = random.choices([1, 2, 3], weights=[70, 20, 10], k=1)[0]
+        racers.append(
+            Racer(
+                id=random.randint(0, 10000),
+                firstName=random.choice(firstnames),
+                lastName=random.choice(lastnames),
+                startNumber=i + 1,
+                categories=random.choices(categories, k=num_categories),
+                tagId="".join(random.choices("0123456789ABCDEF", k=8)),
+                track=random.choice(tracks),
+            )
+        )
+    return racers
 
 
 @app.post("/races/{race_id}/results")
