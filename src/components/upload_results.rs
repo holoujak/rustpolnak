@@ -14,7 +14,7 @@ enum SubmitState {
 }
 
 fn racer_to_result(racer: &Racer) -> Option<RacerResult> {
-    match (racer.track.start, racer.finish) {
+    match (racer.track.start(), racer.finish) {
         (Some(start_time), Some(finish_time)) => Some(RacerResult {
             registration_id: racer.id,
             start_time,

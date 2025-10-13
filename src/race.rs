@@ -41,21 +41,32 @@ impl fmt::Display for Category {
     }
 }
 
-#[derive(Hash, Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
-pub struct Track {
-    pub name: String,
-    pub start: Option<DateTime<Utc>>,
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Track(Rc<RefCell<TrackInner>>);
+
+#[derive(Hash, Clone, PartialEq, Eq, Debug)]
+pub struct TrackInner {
+    name: String,
+    start: Option<DateTime<Utc>>,
 }
 
 impl Track {
-    pub fn name(&self) -> &str {
-        &self.name
+    pub fn new(name: String, start: Option<DateTime<Utc>>) -> Self {
+        Self(Rc::new(RefCell::new(TrackInner { name, start })))
+    }
+
+    pub fn name(&self) -> String {
+        self.0.borrow().name.clone()
+    }
+
+    pub fn start(&self) -> Option<DateTime<Utc>> {
+        self.0.borrow().start
     }
 }
 
 impl fmt::Display for Track {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.name())
     }
 }
 
@@ -64,7 +75,7 @@ pub struct Race {
     pub id: u32,
     pub racers: Vec<Racer>,
     pub categories: Vec<Category>,
-    pub tracks: Vec<Rc<Track>>,
+    pub tracks: Vec<Track>,
     log: Rc<RefCell<RaceEvents>>,
 }
 
@@ -75,7 +86,7 @@ pub struct Racer {
     pub tag: String,
     pub first_name: String,
     pub last_name: String,
-    pub track: Rc<Track>,
+    pub track: Track,
     pub track_rank: Option<u32>,
     pub categories: Vec<Category>,
     pub categories_rank: HashMap<Category, u32>,
@@ -104,7 +115,7 @@ impl Racer {
             RacerField::FirstName => self.first_name.cmp(&other.first_name),
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
-            RacerField::Track => self.track.name.cmp(&other.track.name),
+            RacerField::Track => self.track.name().cmp(&other.track.name()),
             RacerField::TrackRank => match (self.track_rank, other.track_rank) {
                 (Some(a), Some(b)) => a.cmp(&b),
                 (Some(_), None) => std::cmp::Ordering::Less,
@@ -139,7 +150,7 @@ impl Racer {
 
                 std::cmp::Ordering::Equal
             }
-            RacerField::Start => self.track.start.cmp(&other.track.start),
+            RacerField::Start => self.track.start().cmp(&other.track.start()),
             RacerField::Finish => self.finish.cmp(&other.finish),
             RacerField::Time => self.time.cmp(&other.time),
         }
@@ -147,7 +158,7 @@ impl Racer {
 }
 
 /// Extract all unique tracks and sort them
-fn extract_tracks(api_result: &[crate::restclient::Racer], events: &RaceEvents) -> Vec<Rc<Track>> {
+fn extract_tracks(api_result: &[crate::restclient::Racer], events: &RaceEvents) -> Vec<Track> {
     let mut tracks: Vec<String> = api_result
         .iter()
         .map(|racer| racer.track.name.clone())
@@ -163,12 +174,7 @@ fn extract_tracks(api_result: &[crate::restclient::Racer], events: &RaceEvents) 
     });
     tracks
         .into_iter()
-        .map(|name| {
-            Rc::new(Track {
-                name: name.clone(),
-                start: events.get_track_start(&name),
-            })
-        })
+        .map(|name| Track::new(name.clone(), events.get_track_start(&name)))
         .collect()
 }
 
@@ -208,7 +214,7 @@ impl Race {
                 let start_number = racer.start_number.map(StartNumber);
                 let track = tracks
                     .iter()
-                    .find(|track| track.name == racer.track.name)
+                    .find(|track| track.name() == racer.track.name)
                     .unwrap()
                     .clone();
                 let finish =
@@ -229,7 +235,7 @@ impl Race {
                         .collect(),
                     categories_rank: HashMap::new(),
                     finish,
-                    time: calculate_time(track.start, finish),
+                    time: calculate_time(track.start(), finish),
                 }
             })
             .collect();
@@ -247,7 +253,7 @@ impl Race {
     }
 
     pub fn start(&mut self, track: &Track, time: DateTime<Utc>) {
-        track.start = Some(time);
+        track.0.borrow_mut().start = Some(time);
         self.log.borrow_mut().log_start(track, time);
     }
 
@@ -258,7 +264,7 @@ impl Race {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
         let finish_time = Utc::now();
         racer.finish = Some(finish_time);
-        racer.time = calculate_time(racer.track.start, racer.finish);
+        racer.time = calculate_time(racer.track.start(), racer.finish);
         self.log
             .borrow_mut()
             .log_finish(racer.start_number.clone(), finish_time);
@@ -270,7 +276,7 @@ impl Race {
     pub fn finish_start_number(&mut self, start_number: StartNumber) {
         if self
             .finish(|r| {
-                r.start_number == start_number && r.track.start.is_some() && r.finish.is_none()
+                r.start_number == start_number && r.track.start().is_some() && r.finish.is_none()
             })
             .is_err()
         {
@@ -280,7 +286,7 @@ impl Race {
 
     pub fn tag_finished(&mut self, tag: &str) {
         if self
-            .finish(|r| r.tag == tag && r.track.start.is_some() && r.finish.is_none())
+            .finish(|r| r.tag == tag && r.track.start().is_some() && r.finish.is_none())
             .is_err()
         {
             error!("Racer with tag {tag} not found.");
@@ -329,7 +335,7 @@ impl Race {
         let mut finished: Vec<&mut Racer> = self
             .racers
             .iter_mut()
-            .filter(|r| r.track.as_ref() == track)
+            .filter(|r| r.track == *track)
             .filter(|r| r.finish.is_some())
             .collect();
 
@@ -358,10 +364,7 @@ mod tests {
     fn test_calculate_track_rank() {
         let start = Utc::now();
 
-        let track = Rc::new(Track {
-            name: "Track 1".to_string(),
-            start: Some(start),
-        });
+        let track = Track::new("Track 1".to_string(), Some(start));
 
         // define finish times
         let best = start + chrono::Duration::seconds(10);
@@ -432,10 +435,7 @@ mod tests {
                 tag: "tag3".into(),
                 first_name: "John".into(),
                 last_name: "Doe".into(),
-                track: Rc::new(Track {
-                    name: "Different track".to_string(),
-                    start: Some(start),
-                }),
+                track: Track::new("Different track".to_string(), Some(start)),
                 categories: vec![],
                 finish: Some(best_wrong_cat),
                 time: Some(best_wrong_cat.signed_duration_since(start)),

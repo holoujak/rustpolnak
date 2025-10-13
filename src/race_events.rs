@@ -88,7 +88,7 @@ impl RaceEvents {
         let line = serde_json::to_string(&Event {
             timestamp: Utc::now(),
             event: EventType::TrackStart(TrackStart {
-                track: track.name.clone(),
+                track: track.name(),
                 start,
             }),
         })

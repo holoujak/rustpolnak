@@ -1,5 +1,3 @@
-use std::rc::Rc;
-
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 
@@ -9,7 +7,7 @@ use crate::{
 };
 
 #[component]
-pub fn TrackStart(track: Rc<Track>) -> Element {
+pub fn TrackStart(track: Track) -> Element {
     let mut start: Signal<Option<DateTime<Utc>>> = use_signal(|| None);
     let mut editing = use_signal(|| false);
     let track2 = track.clone();

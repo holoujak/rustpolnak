@@ -94,7 +94,7 @@ fn matches_filters(
                 }
             }
             RacerField::Start => {
-                if !format_time(racer.track.start)
+                if !format_time(racer.track.start())
                     .to_lowercase()
                     .contains(&filter_lowercase)
                 {
@@ -188,8 +188,8 @@ pub fn Racers(race: Race) -> Element {
                             td { "{racer.start_number}" }
                             td { "{racer.first_name}" }
                             td { "{racer.last_name}" }
-                            td { "{racer.track}" }
-                            td { "{format_time(racer.track.start)}" }
+                            td { "{racer.track.name()}" }
+                            td { "{format_time(racer.track.start())}" }
                             td { "{format_time(racer.finish)}" }
                             td { "{format_time_delta(racer.time)}" }
                             td { "{racer.track_rank.map(|rank| rank.to_string()).unwrap_or_default() }" }
