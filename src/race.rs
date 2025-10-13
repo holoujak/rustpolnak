@@ -79,7 +79,6 @@ pub struct Racer {
     pub track_rank: Option<u32>,
     pub categories: Vec<Category>,
     pub categories_rank: HashMap<Category, u32>,
-    pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
     pub time: Option<Duration>,
 }
@@ -140,7 +139,7 @@ impl Racer {
 
                 std::cmp::Ordering::Equal
             }
-            RacerField::Start => self.start.cmp(&other.start),
+            RacerField::Start => self.track.start.cmp(&other.track.start),
             RacerField::Finish => self.finish.cmp(&other.finish),
             RacerField::Time => self.time.cmp(&other.time),
         }
@@ -229,7 +228,6 @@ impl Race {
                         .map(|category| Category(category.name))
                         .collect(),
                     categories_rank: HashMap::new(),
-                    start: track.start,
                     finish,
                     time: calculate_time(track.start, finish),
                 }
@@ -249,12 +247,8 @@ impl Race {
     }
 
     pub fn start(&mut self, track: &Track, time: DateTime<Utc>) {
-        for racer in self.racers.iter_mut() {
-            if racer.track.as_ref() == track {
-                racer.start = Some(time);
-                self.log.borrow_mut().log_start(track, time);
-            }
-        }
+        track.start = Some(time);
+        self.log.borrow_mut().log_start(track, time);
     }
 
     fn finish<F>(&mut self, mut predicate: F) -> Result<(), ()>
@@ -264,7 +258,7 @@ impl Race {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
         let finish_time = Utc::now();
         racer.finish = Some(finish_time);
-        racer.time = calculate_time(racer.start, racer.finish);
+        racer.time = calculate_time(racer.track.start, racer.finish);
         self.log
             .borrow_mut()
             .log_finish(racer.start_number.clone(), finish_time);
@@ -275,7 +269,9 @@ impl Race {
 
     pub fn finish_start_number(&mut self, start_number: StartNumber) {
         if self
-            .finish(|r| r.start_number == start_number && r.start.is_some() && r.finish.is_none())
+            .finish(|r| {
+                r.start_number == start_number && r.track.start.is_some() && r.finish.is_none()
+            })
             .is_err()
         {
             error!("Racer with starting number {start_number:?} not found.");
@@ -284,7 +280,7 @@ impl Race {
 
     pub fn tag_finished(&mut self, tag: &str) {
         if self
-            .finish(|r| r.tag == tag && r.start.is_some() && r.finish.is_none())
+            .finish(|r| r.tag == tag && r.track.start.is_some() && r.finish.is_none())
             .is_err()
         {
             error!("Racer with tag {tag} not found.");
@@ -382,7 +378,6 @@ mod tests {
                 last_name: "Jones".into(),
                 track: track.clone(),
                 categories: vec![],
-                start: Some(start),
                 finish: Some(shared),
                 time: Some(shared.signed_duration_since(start)),
                 track_rank: None,
@@ -397,7 +392,6 @@ mod tests {
                 last_name: "Davis".into(),
                 track: track.clone(),
                 categories: vec![],
-                start: Some(start),
                 finish: Some(shared),
                 time: Some(shared.signed_duration_since(start)),
                 track_rank: None,
@@ -412,7 +406,6 @@ mod tests {
                 last_name: "Brown".into(),
                 track: track.clone(),
                 categories: vec![],
-                start: Some(start),
                 finish: None,
                 time: None,
                 track_rank: None,
@@ -427,7 +420,6 @@ mod tests {
                 last_name: "Smith".into(),
                 track: track.clone(),
                 categories: vec![],
-                start: Some(start),
                 finish: Some(best),
                 time: Some(best.signed_duration_since(start)),
                 track_rank: None,
@@ -445,7 +437,6 @@ mod tests {
                     start: Some(start),
                 }),
                 categories: vec![],
-                start: Some(start),
                 finish: Some(best_wrong_cat),
                 time: Some(best_wrong_cat.signed_duration_since(start)),
                 track_rank: None,

@@ -48,7 +48,7 @@ fn handle_action(selected_race: &mut Signal<SelectedRace>, action: Action) {
         Action::Start(track, time) => {
             selected_race.with_mut(|maybe_race| {
                 if let Some(Ok(race)) = maybe_race {
-                    race.start(&track, time);
+                    race.start(track.as_ref(), time);
                 }
             });
         }
