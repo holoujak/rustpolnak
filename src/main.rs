@@ -13,7 +13,6 @@ mod race;
 mod race_events;
 mod restclient;
 mod rfid_reader;
-mod sorter;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 const BOOTSTRAP_CSS: Asset = asset!("/assets/bootstrap.css");
