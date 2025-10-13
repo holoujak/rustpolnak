@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use dioxus::prelude::*;
 
 use crate::{
@@ -8,7 +8,6 @@ use crate::{
 
 #[component]
 pub fn TrackStart(track: Track) -> Element {
-    let mut start: Signal<Option<DateTime<Utc>>> = use_signal(|| None);
     let mut editing = use_signal(|| false);
     let track2 = track.clone();
 
@@ -20,10 +19,9 @@ pub fn TrackStart(track: Track) -> Element {
                 "{track}"
             }
             TimeInput {
-                time: start,
+                time: track.start(),
                 editing,
                 onsave: move |time| {
-                    start.set(Some(time));
                     use_coroutine_handle::<Action>().send(Action::Start(track.clone(), time));
                 },
             }
@@ -42,7 +40,6 @@ pub fn TrackStart(track: Track) -> Element {
             button {
                 class: "btn btn-success",
                 onclick: move |_| {
-                    start.set(Some(Utc::now()));
                     use_coroutine_handle::<Action>().send(Action::Start(track2.clone(), Utc::now()));
                 },
                 "Start"
