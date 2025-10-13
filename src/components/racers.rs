@@ -194,7 +194,7 @@ pub fn Racers(race: Race) -> Element {
                                 }
                             }
                             td {
-                                for category_rank in racer.categories_rank.clone().unwrap_or_default() {
+                                for category_rank in &racer.categories_rank {
                                     span { class: "me-2", "{category_rank.0}: {category_rank.1}" }
                                 }
                             }

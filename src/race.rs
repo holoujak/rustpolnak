@@ -68,7 +68,7 @@ pub struct Racer {
     pub track: Track,
     pub track_rank: Option<u32>,
     pub categories: Vec<Category>,
-    pub categories_rank: Option<HashMap<Category, u32>>,
+    pub categories_rank: HashMap<Category, u32>,
     pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
     pub time: Option<Duration>,
@@ -102,36 +102,34 @@ impl Racer {
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (None, None) => std::cmp::Ordering::Equal,
             },
-            RacerField::CategoriesRank => match (&self.categories_rank, &other.categories_rank) {
-                (Some(a_map), Some(b_map)) => {
-                    // Collect union of category keys, sort them for deterministic ordering
-                    let mut keys: Vec<_> = a_map.keys().chain(b_map.keys()).collect();
-                    keys.sort();
-                    keys.dedup();
+            RacerField::CategoriesRank => {
+                // Collect union of category keys, sort them for deterministic ordering
+                let a_map = &self.categories_rank;
+                let b_map = &other.categories_rank;
 
-                    for key in keys {
-                        let a_rank = a_map.get(key);
-                        let b_rank = b_map.get(key);
+                let mut keys: Vec<_> = a_map.keys().chain(b_map.keys()).collect();
+                keys.sort();
+                keys.dedup();
 
-                        match (a_rank, b_rank) {
-                            (Some(&a), Some(&b)) => {
-                                let ord = a.cmp(&b);
-                                if ord != std::cmp::Ordering::Equal {
-                                    return ord;
-                                }
+                for key in keys {
+                    let a_rank = a_map.get(key);
+                    let b_rank = b_map.get(key);
+
+                    match (a_rank, b_rank) {
+                        (Some(&a), Some(&b)) => {
+                            let ord = a.cmp(&b);
+                            if ord != std::cmp::Ordering::Equal {
+                                return ord;
                             }
-                            (Some(_), None) => return std::cmp::Ordering::Less,
-                            (None, Some(_)) => return std::cmp::Ordering::Greater,
-                            (None, None) => continue,
                         }
+                        (Some(_), None) => return std::cmp::Ordering::Less,
+                        (None, Some(_)) => return std::cmp::Ordering::Greater,
+                        (None, None) => continue,
                     }
-
-                    std::cmp::Ordering::Equal
                 }
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (None, None) => std::cmp::Ordering::Equal,
-            },
+
+                std::cmp::Ordering::Equal
+            }
             RacerField::Start => self.start.cmp(&other.start),
             RacerField::Finish => self.finish.cmp(&other.finish),
             RacerField::Time => self.time.cmp(&other.time),
@@ -212,7 +210,7 @@ impl Race {
                         .into_iter()
                         .map(|category| Category(category.name))
                         .collect(),
-                    categories_rank: None,
+                    categories_rank: HashMap::new(),
                     start,
                     finish,
                     time: calculate_time(start, finish),
@@ -302,13 +300,7 @@ impl Race {
 
         for (index, r) in finished.into_iter().enumerate() {
             let rank: u32 = (index + 1) as u32;
-            if let Some(ref mut categories_rank) = r.categories_rank {
-                categories_rank.insert(category.clone(), rank);
-            } else {
-                let mut new_rank_map = HashMap::new();
-                new_rank_map.insert(category.clone(), rank);
-                r.categories_rank = Some(new_rank_map);
-            }
+            r.categories_rank.insert(category.clone(), rank);
         }
     }
 
