@@ -3,6 +3,8 @@ rfid_devices = [
     "stubs/dev/rfid1",
 ]
 
+results_path = "~/.rustpolnak/results.pdf"
+
 [api]
 url = "http://localhost:8000"
 username = "user"
