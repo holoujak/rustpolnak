@@ -3,6 +3,7 @@ use chrono::{Duration, TimeDelta};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt;
 use std::num::ParseIntError;
@@ -67,6 +68,7 @@ pub struct Racer {
     pub track: Track,
     pub track_rank: Option<u32>,
     pub categories: Vec<Category>,
+    pub categories_rank: Option<HashMap<Category, u32>>,
     pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
     pub time: Option<Duration>,
@@ -80,6 +82,7 @@ pub enum RacerField {
     TagId,
     Track,
     TrackRank,
+    CategoriesRank,
     Start,
     Finish,
     Time,
@@ -95,6 +98,36 @@ impl Racer {
             RacerField::Track => self.track.0.cmp(&other.track.0),
             RacerField::TrackRank => match (self.track_rank, other.track_rank) {
                 (Some(a), Some(b)) => a.cmp(&b),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            },
+            RacerField::CategoriesRank => match (&self.categories_rank, &other.categories_rank) {
+                (Some(a_map), Some(b_map)) => {
+                    // Collect union of category keys, sort them for deterministic ordering
+                    let mut keys: Vec<_> = a_map.keys().chain(b_map.keys()).collect();
+                    keys.sort();
+                    keys.dedup();
+
+                    for key in keys {
+                        let a_rank = a_map.get(key);
+                        let b_rank = b_map.get(key);
+
+                        match (a_rank, b_rank) {
+                            (Some(&a), Some(&b)) => {
+                                let ord = a.cmp(&b);
+                                if ord != std::cmp::Ordering::Equal {
+                                    return ord;
+                                }
+                            }
+                            (Some(_), None) => return std::cmp::Ordering::Less,
+                            (None, Some(_)) => return std::cmp::Ordering::Greater,
+                            (None, None) => continue,
+                        }
+                    }
+
+                    std::cmp::Ordering::Equal
+                }
                 (Some(_), None) => std::cmp::Ordering::Less,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (None, None) => std::cmp::Ordering::Equal,
@@ -179,6 +212,7 @@ impl Race {
                         .into_iter()
                         .map(|category| Category(category.name))
                         .collect(),
+                    categories_rank: None,
                     start,
                     finish,
                     time: calculate_time(start, finish),
@@ -194,6 +228,7 @@ impl Race {
             log: RefCell::new(racelog).into(),
         };
         race.map_start_number_to_track_rank();
+        race.map_start_number_to_categories_rank();
         Ok(race)
     }
 
@@ -218,6 +253,7 @@ impl Race {
             .borrow_mut()
             .log_finish(racer.start_number.clone(), finish_time);
         self.map_start_number_to_track_rank();
+        self.map_start_number_to_categories_rank();
         Ok(())
     }
 
@@ -236,6 +272,43 @@ impl Race {
             .is_err()
         {
             error!("Racer with tag {tag} not found.");
+        }
+    }
+
+    pub fn map_start_number_to_categories_rank(&mut self) {
+        let categories = self.categories.clone();
+        for category in categories {
+            self.calculate_categories_rank(&category);
+        }
+    }
+
+    fn calculate_categories_rank(&mut self, category: &Category) {
+        let mut finished: Vec<&mut Racer> = self
+            .racers
+            .iter_mut()
+            .filter(|r| r.categories.contains(category))
+            .filter(|r| r.finish.is_some())
+            .collect();
+
+        finished.sort_by(|a, b| {
+            let ord = a.finish.cmp(&b.finish);
+            if ord != std::cmp::Ordering::Equal {
+                return ord;
+            }
+
+            // in case the finish times are equal, sort by start number
+            a.start_number.0.cmp(&b.start_number.0)
+        });
+
+        for (index, r) in finished.into_iter().enumerate() {
+            let rank: u32 = (index + 1) as u32;
+            if let Some(ref mut categories_rank) = r.categories_rank {
+                categories_rank.insert(category.clone(), rank);
+            } else {
+                let mut new_rank_map = HashMap::new();
+                new_rank_map.insert(category.clone(), rank);
+                r.categories_rank = Some(new_rank_map);
+            }
         }
     }
 
