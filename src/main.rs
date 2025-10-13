@@ -9,6 +9,7 @@ use crate::restclient::RaceRestAPI;
 
 mod components;
 mod config;
+mod printer;
 mod race;
 mod race_events;
 mod restclient;

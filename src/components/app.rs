@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 use futures_util::StreamExt;
 use tokio::sync::broadcast;
-use tracing::info;
+use tracing::{info, trace};
 
 use crate::{
     components::{
@@ -10,6 +12,7 @@ use crate::{
         track_start::TrackStart, upload_results::UploadResults,
     },
     config::Config,
+    printer::print_result,
     race::{Race, StartNumber, Track},
     rfid_reader,
 };
@@ -65,6 +68,8 @@ pub fn App() -> Element {
     let mut selected_race = use_signal(|| SelectedRace::None);
     let config = use_context::<Config>();
     let mut show_starts = use_signal(|| true);
+    let results_output_path =
+        PathBuf::from(shellexpand::tilde(&config.results_path.clone()).to_string());
 
     use_coroutine(move |mut actions_rx: UnboundedReceiver<Action>| {
         let config = config.clone();
@@ -89,6 +94,12 @@ pub fn App() -> Element {
         }
     });
 
+    let race = selected_race
+        .read()
+        .as_ref()
+        .and_then(|r| r.as_ref().ok())
+        .cloned();
+
     rsx! {
         div { class: "d-flex flex-column", style: "height: 100vh",
             div { class: "d-flex column-gap-1 mb-1",
@@ -100,9 +111,23 @@ pub fn App() -> Element {
                     },
                 }
                 RacesList { selected_race }
-                match &*selected_race.read() {
-                    Some(Ok(race)) => rsx! {
+                match race {
+                    Some(race) => rsx! {
                         UploadResults { race: race.clone() }
+                        button {
+                            class: "btn btn-primary",
+                            onclick: move |_| {
+                                info!("Printing results for race {}", race.id);
+                                match print_result(&race, results_output_path.clone()) {
+                                    Ok(()) => {
+                                        info!("Print job completed successfully.");
+                                        open::that(&results_output_path).ok();
+                                    }
+                                    Err(e) => trace!("Print job failed: {}", e),
+                                }
+                            },
+                            dangerous_inner_html: iconify::svg!("mdi:printer"),
+                        }
                     },
                     _ => rsx! {},
                 }

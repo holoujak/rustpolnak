@@ -16,6 +16,7 @@ pub struct RestAPIConfig {
 pub struct Config {
     pub api: RestAPIConfig,
     pub rfid_devices: Vec<String>,
+    pub results_path: String,
 }
 
 pub fn app_dir() -> PathBuf {

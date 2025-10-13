@@ -19,7 +19,7 @@ fn format_time(datetime: Option<DateTime<Utc>>) -> String {
     }
 }
 
-fn format_time_delta(delta: Option<TimeDelta>) -> String {
+pub fn format_time_delta(delta: Option<TimeDelta>) -> String {
     let delta = match delta {
         Some(delta) => delta,
         _ => return "".to_string(),
