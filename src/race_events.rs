@@ -21,7 +21,7 @@ struct RacerFinish {
 
 #[derive(Debug, Deserialize, Serialize)]
 struct TrackStart {
-    track: Track,
+    track: String,
     start: DateTime<Utc>,
 }
 
@@ -48,7 +48,7 @@ impl PartialEq for RaceEvents {
 
 pub struct RaceEvents {
     writer: BufWriter<File>,
-    track_starts: HashMap<Track, DateTime<Utc>>,
+    track_starts: HashMap<String, DateTime<Utc>>,
     finish_times: HashMap<StartNumber, DateTime<Utc>>,
 }
 
@@ -88,7 +88,7 @@ impl RaceEvents {
         let line = serde_json::to_string(&Event {
             timestamp: Utc::now(),
             event: EventType::TrackStart(TrackStart {
-                track: track.clone(),
+                track: track.name.clone(),
                 start,
             }),
         })
@@ -101,7 +101,7 @@ impl RaceEvents {
         Some(*self.finish_times.get(&start_number)?)
     }
 
-    pub fn get_track_start(&self, track: &Track) -> Option<DateTime<Utc>> {
+    pub fn get_track_start(&self, track: &String) -> Option<DateTime<Utc>> {
         Some(*self.track_starts.get(track)?)
     }
 }
@@ -114,7 +114,7 @@ fn parse_event(line: Result<String, std::io::Error>) -> Result<EventType, std::i
 fn load_events(
     path: &PathBuf,
 ) -> (
-    HashMap<Track, DateTime<Utc>>,
+    HashMap<String, DateTime<Utc>>,
     HashMap<StartNumber, DateTime<Utc>>,
 ) {
     let mut track_starts = HashMap::new();

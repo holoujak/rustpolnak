@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 use futures_util::StreamExt;
@@ -20,7 +22,7 @@ const LOADING: Asset = asset!("/assets/loading.webp");
 
 #[derive(Debug)]
 pub enum Action {
-    Start(Track, DateTime<Utc>),
+    Start(Rc<Track>, DateTime<Utc>),
     FinishByStartNumber(StartNumber),
 }
 
@@ -46,7 +48,7 @@ fn handle_action(selected_race: &mut Signal<SelectedRace>, action: Action) {
         Action::Start(track, time) => {
             selected_race.with_mut(|maybe_race| {
                 if let Some(Ok(race)) = maybe_race {
-                    race.start(track, time);
+                    race.start(&track, time);
                 }
             });
         }

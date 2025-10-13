@@ -75,7 +75,12 @@ fn matches_filters(
                 }
             }
             RacerField::Track => {
-                if !racer.track.0.to_lowercase().contains(&filter_lowercase) {
+                if !racer
+                    .track
+                    .name()
+                    .to_lowercase()
+                    .contains(&filter_lowercase)
+                {
                     return false;
                 }
             }

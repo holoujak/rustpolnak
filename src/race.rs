@@ -42,10 +42,20 @@ impl fmt::Display for Category {
 }
 
 #[derive(Hash, Clone, PartialEq, Eq, Debug, Deserialize, Serialize)]
-pub struct Track(pub String);
+pub struct Track {
+    pub name: String,
+    pub start: Option<DateTime<Utc>>,
+}
+
+impl Track {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 impl fmt::Display for Track {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{}", self.name)
     }
 }
 
@@ -54,7 +64,7 @@ pub struct Race {
     pub id: u32,
     pub racers: Vec<Racer>,
     pub categories: Vec<Category>,
-    pub tracks: Vec<Track>,
+    pub tracks: Vec<Rc<Track>>,
     log: Rc<RefCell<RaceEvents>>,
 }
 
@@ -65,7 +75,7 @@ pub struct Racer {
     pub tag: String,
     pub first_name: String,
     pub last_name: String,
-    pub track: Track,
+    pub track: Rc<Track>,
     pub track_rank: Option<u32>,
     pub categories: Vec<Category>,
     pub categories_rank: HashMap<Category, u32>,
@@ -95,7 +105,7 @@ impl Racer {
             RacerField::FirstName => self.first_name.cmp(&other.first_name),
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
-            RacerField::Track => self.track.0.cmp(&other.track.0),
+            RacerField::Track => self.track.name.cmp(&other.track.name),
             RacerField::TrackRank => match (self.track_rank, other.track_rank) {
                 (Some(a), Some(b)) => a.cmp(&b),
                 (Some(_), None) => std::cmp::Ordering::Less,
@@ -138,23 +148,29 @@ impl Racer {
 }
 
 /// Extract all unique tracks and sort them
-fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<Track> {
-    let mut tracks: Vec<Track> = api_result
+fn extract_tracks(api_result: &[crate::restclient::Racer], events: &RaceEvents) -> Vec<Rc<Track>> {
+    let mut tracks: Vec<String> = api_result
         .iter()
-        .map(|racer| Track(racer.track.name.clone()))
+        .map(|racer| racer.track.name.clone())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
 
-    tracks.sort_by_key(|track| {
-        track
-            .0
-            .split_whitespace()
+    tracks.sort_by_key(|name| {
+        name.split_whitespace()
             .next()
             .and_then(|s| s.parse::<u32>().ok())
             .unwrap_or(0)
     });
     tracks
+        .into_iter()
+        .map(|name| {
+            Rc::new(Track {
+                name: name.clone(),
+                start: events.get_track_start(&name),
+            })
+        })
+        .collect()
 }
 
 /// Extract all unique categories and sort them
@@ -184,16 +200,18 @@ impl Race {
     pub async fn load(api: RaceRestAPI, race_id: u32) -> Result<Race, Box<dyn std::error::Error>> {
         let api_result = api.registrations(race_id).await?;
         let racelog = RaceEvents::load(race_id);
-        let tracks = extract_tracks(&api_result);
+        let tracks = extract_tracks(&api_result, &racelog);
         let categories = extract_categories(&api_result);
 
         let racers = api_result
             .into_iter()
             .map(|racer| {
                 let start_number = racer.start_number.map(StartNumber);
-
-                let track = Track(racer.track.name.clone());
-                let start = racelog.get_track_start(&track);
+                let track = tracks
+                    .iter()
+                    .find(|track| track.name == racer.track.name)
+                    .unwrap()
+                    .clone();
                 let finish =
                     start_number.and_then(|start_number| racelog.get_finish_time_for(start_number));
 
@@ -203,7 +221,7 @@ impl Race {
                     tag: racer.tag_id.unwrap_or("".to_string()),
                     first_name: racer.first_name,
                     last_name: racer.last_name,
-                    track,
+                    track: track.clone(),
                     track_rank: None,
                     categories: racer
                         .categories
@@ -211,9 +229,9 @@ impl Race {
                         .map(|category| Category(category.name))
                         .collect(),
                     categories_rank: HashMap::new(),
-                    start,
+                    start: track.start,
                     finish,
-                    time: calculate_time(start, finish),
+                    time: calculate_time(track.start, finish),
                 }
             })
             .collect();
@@ -230,11 +248,11 @@ impl Race {
         Ok(race)
     }
 
-    pub fn start(&mut self, track: Track, time: DateTime<Utc>) {
+    pub fn start(&mut self, track: &Track, time: DateTime<Utc>) {
         for racer in self.racers.iter_mut() {
-            if racer.track == track {
+            if racer.track.as_ref() == track {
                 racer.start = Some(time);
-                self.log.borrow_mut().log_start(&track, time);
+                self.log.borrow_mut().log_start(track, time);
             }
         }
     }
@@ -315,7 +333,7 @@ impl Race {
         let mut finished: Vec<&mut Racer> = self
             .racers
             .iter_mut()
-            .filter(|r| r.track == *track)
+            .filter(|r| r.track.as_ref() == track)
             .filter(|r| r.finish.is_some())
             .collect();
 
@@ -342,10 +360,14 @@ mod tests {
 
     #[test]
     fn test_calculate_track_rank() {
-        let track = Track("Track 1".to_string());
+        let start = Utc::now();
+
+        let track = Rc::new(Track {
+            name: "Track 1".to_string(),
+            start: Some(start),
+        });
 
         // define finish times
-        let start = Utc::now();
         let best = start + chrono::Duration::seconds(10);
         let shared = start + chrono::Duration::seconds(15);
         let best_wrong_cat = start + chrono::Duration::seconds(1);
@@ -418,7 +440,10 @@ mod tests {
                 tag: "tag3".into(),
                 first_name: "John".into(),
                 last_name: "Doe".into(),
-                track: Track("Different track".to_string()),
+                track: Rc::new(Track {
+                    name: "Different track".to_string(),
+                    start: Some(start),
+                }),
                 categories: vec![],
                 start: Some(start),
                 finish: Some(best_wrong_cat),
