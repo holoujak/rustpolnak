@@ -67,6 +67,7 @@ pub struct Racer {
     pub first_name: String,
     pub last_name: String,
     pub track: Track,
+    pub track_rank: Option<u32>,
     pub categories: Vec<Category>,
     pub start: Option<DateTime<Utc>>,
     pub finish: Option<DateTime<Utc>>,
@@ -80,6 +81,7 @@ pub enum RacerField {
     LastName,
     TagId,
     Track,
+    TrackRank,
     Start,
     Finish,
     Time,
@@ -93,6 +95,12 @@ impl Racer {
             RacerField::LastName => self.last_name.cmp(&other.last_name),
             RacerField::TagId => self.tag.cmp(&other.tag),
             RacerField::Track => self.track.0.cmp(&other.track.0),
+            RacerField::TrackRank => match (self.track_rank, other.track_rank) {
+                (Some(a), Some(b)) => a.cmp(&b),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => std::cmp::Ordering::Equal,
+            },
             RacerField::Start => self.start.cmp(&other.start),
             RacerField::Finish => self.finish.cmp(&other.finish),
             RacerField::Time => self.time.cmp(&other.time),
@@ -167,6 +175,7 @@ impl Race {
                     first_name: racer.first_name,
                     last_name: racer.last_name,
                     track,
+                    track_rank: None,
                     categories: racer
                         .categories
                         .into_iter()
@@ -241,9 +250,9 @@ impl Race {
     }
 
     fn calculate_track_rank(&mut self, track: &Track) {
-        let mut finished: Vec<&Racer> = self
+        let mut finished: Vec<&mut Racer> = self
             .racers
-            .iter()
+            .iter_mut()
             .filter(|r| r.track == *track)
             .filter(|r| r.finish.is_some())
             .collect();
@@ -262,8 +271,10 @@ impl Race {
 
         current_track_rank.clear(); // Clear previous rankings
 
-        for (rank, r) in finished.into_iter().enumerate() {
-            current_track_rank.insert(r.start_number.clone(), (rank + 1).try_into().unwrap());
+        for (index, r) in finished.into_iter().enumerate() {
+            let rank: u32 = (index + 1) as u32;
+            r.track_rank = Some(rank);
+            current_track_rank.insert(r.start_number.clone(), rank);
         }
     }
 }

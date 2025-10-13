@@ -79,6 +79,15 @@ fn matches_filters(
                     return false;
                 }
             }
+            RacerField::TrackRank => {
+                let rank_str = racer
+                    .track_rank
+                    .map(|rank| rank.to_string())
+                    .unwrap_or_default();
+                if !rank_str.contains(&filter_lowercase) {
+                    return false;
+                }
+            }
             RacerField::Start => {
                 if !format_time(racer.start)
                     .to_lowercase()
@@ -152,7 +161,7 @@ pub fn Racers(race: Race) -> Element {
                         Th { sorter, field: RacerField::Start, "Start" }
                         Th { sorter, field: RacerField::Finish, "Finish" }
                         Th { sorter, field: RacerField::Time, "Time" }
-                        th { "Track rank" }
+                        Th { sorter, field: RacerField::TrackRank, "Track rank" }
                         th {
                             CategoriesList {
                                 categories: race.categories.clone(),
@@ -174,12 +183,7 @@ pub fn Racers(race: Race) -> Element {
                             td { "{format_time(racer.start)}" }
                             td { "{format_time(racer.finish)}" }
                             td { "{format_time_delta(racer.time)}" }
-                            td {
-                                "{race.tracks_rank.get(&racer.track)
-                                .and_then(|m| m.get(&racer.start_number))
-                                .map(|rank| rank.to_string())
-                                .unwrap_or_default() }"
-                            }
+                            td { "{racer.track_rank.map(|rank| rank.to_string()).unwrap_or_default() }" }
                             td {
                                 for category in racer.categories.clone() {
                                     "{category} "
