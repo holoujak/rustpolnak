@@ -112,6 +112,9 @@ fn matches_filters(
                     return false;
                 }
             }
+            _ => {
+                tracing::error!("Unimplemented filter for field {:?}", field);
+            }
         }
     }
 
@@ -168,6 +171,7 @@ pub fn Racers(race: Race) -> Element {
                                 selected_category_id,
                             }
                         }
+                        Th { sorter, field: RacerField::CategoriesRank, "Categories rank" }
                     }
                 }
                 tbody {
@@ -187,6 +191,11 @@ pub fn Racers(race: Race) -> Element {
                             td {
                                 for category in racer.categories.clone() {
                                     "{category} "
+                                }
+                            }
+                            td {
+                                for category_rank in &racer.categories_rank {
+                                    span { class: "me-2", "{category_rank.0}: {category_rank.1}" }
                                 }
                             }
                         }
