@@ -2,9 +2,11 @@ use chrono::{DateTime, Local, TimeDelta, Utc};
 use dioxus::prelude::*;
 
 use crate::{
-    components::{categories_list::CategoriesList, th::Th},
+    components::{
+        categories_list::CategoriesList,
+        th::{Sorter, Th},
+    },
     race::{Category, Race, Racer, RacerField},
-    sorter::Sorter,
 };
 
 fn format_time(datetime: Option<DateTime<Utc>>) -> String {
