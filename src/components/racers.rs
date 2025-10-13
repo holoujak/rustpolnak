@@ -2,9 +2,8 @@ use chrono::{DateTime, Local, TimeDelta, Utc};
 use dioxus::prelude::*;
 
 use crate::{
-    components::categories_list::CategoriesList,
+    components::{categories_list::CategoriesList, th::Th},
     race::{Category, Race, Racer, RacerField},
-    sort_table::Th,
     sorter::Sorter,
 };
 

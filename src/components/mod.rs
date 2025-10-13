@@ -3,6 +3,7 @@ pub mod categories_list;
 pub mod manual_start_number_input;
 pub mod racers;
 pub mod races_list;
+pub mod th;
 pub mod time_input;
 pub mod track_start;
 pub mod upload_results;
