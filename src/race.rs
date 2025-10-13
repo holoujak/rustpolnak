@@ -3,7 +3,6 @@ use chrono::{Duration, TimeDelta};
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::cmp::Ordering;
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fmt;
 use std::num::ParseIntError;
@@ -55,7 +54,6 @@ pub struct Race {
     pub racers: Vec<Racer>,
     pub categories: Vec<Category>,
     pub tracks: Vec<Track>,
-    pub tracks_rank: HashMap<Track, HashMap<StartNumber, u32>>,
     log: Rc<RefCell<RaceEvents>>,
 }
 
@@ -193,7 +191,6 @@ impl Race {
             racers,
             categories,
             tracks,
-            tracks_rank: HashMap::new(),
             log: RefCell::new(racelog).into(),
         };
         race.map_start_number_to_track_rank();
@@ -267,14 +264,9 @@ impl Race {
             a.start_number.0.cmp(&b.start_number.0)
         });
 
-        let current_track_rank = self.tracks_rank.entry(track.clone()).or_default();
-
-        current_track_rank.clear(); // Clear previous rankings
-
         for (index, r) in finished.into_iter().enumerate() {
             let rank: u32 = (index + 1) as u32;
             r.track_rank = Some(rank);
-            current_track_rank.insert(r.start_number.clone(), rank);
         }
     }
 }
