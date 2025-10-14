@@ -1,5 +1,5 @@
-use crate::components::racers::format_time_delta;
 use crate::race::{Race, Racer};
+use crate::time_utils::format_time_delta;
 use std::path::PathBuf;
 use tracing::{error, info};
 
