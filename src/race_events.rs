@@ -48,7 +48,7 @@ impl PartialEq for RaceEvents {
 
 pub struct RaceEvents {
     writer: BufWriter<File>,
-    track_starts: HashMap<Track, DateTime<Utc>>,
+    pub track_starts: HashMap<Track, DateTime<Utc>>,
     finish_times: HashMap<StartNumber, DateTime<Utc>>,
 }
 

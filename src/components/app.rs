@@ -137,8 +137,8 @@ pub fn App() -> Element {
                 Some(Ok(race)) => rsx! {
                     if show_starts() {
                         div { class: "d-flex flex-column row-gap-1 mb-1",
-                            for track in race.clone().tracks {
-                                TrackStart { track: track.clone() }
+                            for (track , start) in race.tracks_with_start() {
+                                TrackStart { track, start }
                             }
                         }
                     }

@@ -18,14 +18,14 @@ fn format_time(time: DateTime<Utc>) -> String {
 
 #[component]
 pub fn TimeInput(
-    time: Signal<Option<DateTime<Utc>>>,
+    time: Option<DateTime<Utc>>,
     editing: Signal<bool>,
     onsave: EventHandler<DateTime<Utc>>,
 ) -> Element {
     let mut text = use_signal(|| "".to_string());
 
     use_effect(move || {
-        text.set(match time() {
+        text.set(match time {
             Some(start) => format_time(start),
             None => "".to_string(),
         });
@@ -41,7 +41,6 @@ pub fn TimeInput(
                 onkeydown: move |evt| {
                     if evt.key() == Key::Enter {
                         if let Some(parsed) = parse_time(&text()) {
-                            time.set(Some(parsed));
                             editing.set(false);
                             onsave(parsed);
                         }
@@ -57,7 +56,7 @@ pub fn TimeInput(
                 ondoubleclick: move |_evt| {
                     editing.set(true);
                 },
-                if let Some(start) = time() {
+                if let Some(start) = time {
                     {format_time(start)}
                 }
             }

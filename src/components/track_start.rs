@@ -7,8 +7,7 @@ use crate::{
 };
 
 #[component]
-pub fn TrackStart(track: Track) -> Element {
-    let mut start: Signal<Option<DateTime<Utc>>> = use_signal(|| None);
+pub fn TrackStart(track: Track, start: Option<DateTime<Utc>>) -> Element {
     let mut editing = use_signal(|| false);
     let track2 = track.clone();
 
@@ -23,7 +22,6 @@ pub fn TrackStart(track: Track) -> Element {
                 time: start,
                 editing,
                 onsave: move |time| {
-                    start.set(Some(time));
                     use_coroutine_handle::<Action>().send(Action::Start(track.clone(), time));
                 },
             }
@@ -42,7 +40,6 @@ pub fn TrackStart(track: Track) -> Element {
             button {
                 class: "btn btn-success",
                 onclick: move |_| {
-                    start.set(Some(Utc::now()));
                     use_coroutine_handle::<Action>().send(Action::Start(track2.clone(), Utc::now()));
                 },
                 "Start"

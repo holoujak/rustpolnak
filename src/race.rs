@@ -55,6 +55,7 @@ pub struct Race {
     pub racers: Vec<Racer>,
     pub categories: Vec<Category>,
     pub tracks: Vec<Track>,
+    track_starts: HashMap<Track, DateTime<Utc>>,
     log: Rc<RefCell<RaceEvents>>,
 }
 
@@ -223,11 +224,19 @@ impl Race {
             racers,
             categories,
             tracks,
+            track_starts: racelog.track_starts.clone(),
             log: RefCell::new(racelog).into(),
         };
         race.map_start_number_to_track_rank();
         race.map_start_number_to_categories_rank();
         Ok(race)
+    }
+
+    pub fn tracks_with_start(&self) -> Vec<(Track, Option<DateTime<Utc>>)> {
+        self.tracks
+            .iter()
+            .map(|track| (track.clone(), self.track_starts.get(track).copied()))
+            .collect()
     }
 
     pub fn start(&mut self, track: Track, time: DateTime<Utc>) {
@@ -237,6 +246,7 @@ impl Race {
                 self.log.borrow_mut().log_start(&track, time);
             }
         }
+        self.track_starts.insert(track, time);
     }
 
     fn finish<F>(&mut self, mut predicate: F) -> Result<(), ()>
@@ -433,6 +443,7 @@ mod tests {
             racers,
             categories: vec![],
             tracks: vec![track.clone()],
+            track_starts: HashMap::new(),
             log: Rc::new(RefCell::new(RaceEvents::load(100000))),
         };
 
