@@ -249,34 +249,39 @@ impl Race {
         self.track_starts.insert(track, time);
     }
 
-    fn finish<F>(&mut self, mut predicate: F) -> Result<(), ()>
+    fn finish<F>(&mut self, mut predicate: F, time: DateTime<Utc>) -> Result<(), ()>
     where
         F: for<'a> FnMut(&&'a mut Racer) -> bool,
     {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
-        let finish_time = Utc::now();
-        racer.finish = Some(finish_time);
+        racer.finish = Some(time);
         racer.time = calculate_time(racer.start, racer.finish);
         self.log
             .borrow_mut()
-            .log_finish(racer.start_number.clone(), finish_time);
+            .log_finish(racer.start_number.clone(), time);
         self.map_start_number_to_track_rank();
         self.map_start_number_to_categories_rank();
         Ok(())
     }
 
-    pub fn finish_start_number(&mut self, start_number: StartNumber) {
+    pub fn finish_start_number(&mut self, start_number: StartNumber, time: DateTime<Utc>) {
         if self
-            .finish(|r| r.start_number == start_number && r.start.is_some() && r.finish.is_none())
+            .finish(
+                |r| r.start_number == start_number && r.start.is_some() && r.finish.is_none(),
+                time,
+            )
             .is_err()
         {
             error!("Racer with starting number {start_number:?} not found.");
         }
     }
 
-    pub fn tag_finished(&mut self, tag: &str) {
+    pub fn tag_finished(&mut self, tag: &str, time: DateTime<Utc>) {
         if self
-            .finish(|r| r.tag == tag && r.start.is_some() && r.finish.is_none())
+            .finish(
+                |r| r.tag == tag && r.start.is_some() && r.finish.is_none(),
+                time,
+            )
             .is_err()
         {
             error!("Racer with tag {tag} not found.");

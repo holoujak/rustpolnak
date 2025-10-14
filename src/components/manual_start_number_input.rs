@@ -1,3 +1,4 @@
+use chrono::Utc;
 use dioxus::prelude::*;
 
 use crate::components::app::Action;
@@ -13,7 +14,7 @@ pub fn ManualStartNumberInput() -> Element {
                 event.prevent_default();
                 if let Ok(start_number) = start_number().parse() {
                     use_coroutine_handle::<Action>()
-                        .send(Action::FinishByStartNumber(start_number));
+                        .send(Action::FinishByStartNumber(start_number, Utc::now()));
                 }
                 start_number.set(String::from(""));
             },
