@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use dioxus::desktop::{Config, LogicalSize, WindowBuilder};
+use dioxus::desktop::{Config, WindowBuilder};
 use dioxus::prelude::*;
 use tracing::Level;
 
@@ -22,7 +22,7 @@ fn appconfig_default() -> Config {
         WindowBuilder::new()
             .with_maximized(false)
             .with_title("rustpolnak")
-            .with_min_inner_size(LogicalSize::new(1280, 768)),
+            .with_maximized(true),
     )
 }
 
