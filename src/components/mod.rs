@@ -1,6 +1,7 @@
 pub mod app;
 pub mod categories_list;
 pub mod manual_start_number_input;
+pub mod racer_row;
 pub mod racers;
 pub mod races_list;
 pub mod th;
