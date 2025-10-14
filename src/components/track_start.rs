@@ -21,6 +21,7 @@ pub fn TrackStart(track: Track, start: Option<DateTime<Utc>>) -> Element {
             TimeInput {
                 time: start,
                 editing,
+                span_class: "input-group-text flex-grow-1",
                 onsave: move |time| {
                     use_coroutine_handle::<Action>().send(Action::Start(track.clone(), time));
                 },

@@ -21,6 +21,7 @@ pub fn TimeInput(
     time: Option<DateTime<Utc>>,
     editing: Signal<bool>,
     onsave: EventHandler<DateTime<Utc>>,
+    span_class: Option<String>,
 ) -> Element {
     let mut text = use_signal(|| "".to_string());
 
@@ -54,7 +55,7 @@ pub fn TimeInput(
             }
         } else {
             span {
-                class: "input-group-text flex-grow-1",
+                class: span_class,
                 ondoubleclick: move |_evt| {
                     editing.set(true);
                 },
