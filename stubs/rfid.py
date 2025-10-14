@@ -59,74 +59,17 @@ class RFID:
 
 
 if __name__ == "__main__":
-    from typing import List
-    from prompt_toolkit import PromptSession
-    from prompt_toolkit.key_binding import KeyBindings
-    from prompt_toolkit.formatted_text import HTML
-    from dataclasses import dataclass
     from app import registrations
     import asyncio
     import argparse
 
-    @dataclass
-    class RacerWithRFID:
-        start_number: int
-        firstname: str
-        lastname: str
-        tag: str
-        sent: bool = False
-
-    class Menu:
-        def __init__(self, racers: List[RacerWithRFID]):
-            self.racers = racers
-            self.selected_index = 0
-            self.rfids: List[RFID] = []
-
-        def create_keybindings(self):
-            kb = KeyBindings()
-
-            @kb.add("up")
-            def up(event):
-                self.selected_index = (self.selected_index - 1) % len(self.racers)
-
-            @kb.add("down")
-            def down(event):
-                self.selected_index = (self.selected_index + 1) % len(self.racers)
-
-            @kb.add("enter")
-            def enter(event):
-                selected = self.racers[self.selected_index]
-                selected.sent = True
-
-                for rfid in self.rfids:
-                    rfid.send_tags([selected.tag])
-
-            @kb.add("c-r")
-            def reset(event):
-                for item in self.racers:
-                    item.sent = False
-
-            return kb
-
-        def create_prompt_text(self):
-            result = "\n"
-            for i, racer in enumerate(self.racers):
-                start, end = "", ""
-                if racer.sent:
-                    start, end = "<ansigreen>", "</ansigreen>"
-                prefix = ">" if i == self.selected_index else " "
-                result += f"{prefix} {start}#{racer.start_number:04} {racer.tag} {racer.firstname} {racer.lastname}{end}\n"
-            result += "[Enter] send tag   [Up/Down] Navigate racers  [Ctrl+R] reset sent colors\n"
-            return HTML(result)
-
-        async def run(self):
-            self.rfids = await asyncio.gather(
-                RFID.create(0),
-                RFID.create(1),
-            )
-
-            session = PromptSession(key_bindings=self.create_keybindings())
-            return await session.prompt_async(self.create_prompt_text)
+    from prompt_toolkit.key_binding import KeyBindings
+    from prompt_toolkit.application import Application
+    from prompt_toolkit.layout import (
+        HSplit,
+        Layout,
+    )
+    from prompt_toolkit.widgets import RadioList
 
     async def main():
         p = argparse.ArgumentParser()
@@ -134,13 +77,54 @@ if __name__ == "__main__":
         args = p.parse_args()
 
         racers = [
-            RacerWithRFID(
-                racer.startNumber, racer.firstName, racer.lastName, racer.tagId
+            (
+                racer.tagId,
+                f"#{racer.startNumber:04} {racer.tagId} {racer.firstName} {racer.lastName}",
             )
             for racer in registrations(args.race_id)
             if racer.startNumber and racer.tagId
         ]
 
-        await Menu(racers).run()
+        rfids = await asyncio.gather(
+            RFID.create(0),
+            RFID.create(1),
+        )
+
+        radiolist = RadioList(
+            values=racers,
+            select_on_focus=True,
+            open_character="",
+            select_character=">",
+            close_character="",
+            show_cursor=False,
+            show_scrollbar=False,
+        )
+
+        kb = KeyBindings()
+
+        @kb.add("enter", eager=True)
+        def _on_enter(event) -> None:
+            for rfid in rfids:
+                rfid.send_tags([radiolist.current_value])
+
+        @kb.add("c-c")
+        @kb.add("<sigint>")
+        @kb.add("escape")
+        @kb.add("q")
+        def _keyboard_interrupt(event) -> None:
+            event.app.exit(style="class:aborting")
+
+        @kb.add("c-z")
+        def _suspend(event) -> None:
+            event.app.suspend_to_background()
+
+        app = Application(
+            layout=Layout(HSplit([radiolist])),
+            full_screen=True,
+            mouse_support=True,
+            key_bindings=kb,
+        )
+
+        await app.run_async()
 
     asyncio.run(main())
