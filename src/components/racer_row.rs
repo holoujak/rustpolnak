@@ -1,10 +1,15 @@
 use dioxus::prelude::*;
 
+use crate::components::app::Action;
+use crate::components::time_input::TimeInput;
 use crate::race::Racer;
 use crate::time_utils::{format_time, format_time_delta};
 
 #[component]
 pub fn RacerRow(racer: Racer) -> Element {
+    let editing = use_signal(|| false);
+    let start_number = racer.start_number.clone();
+
     rsx! {
         tr {
             td { "{racer.start_number}" }
@@ -12,7 +17,16 @@ pub fn RacerRow(racer: Racer) -> Element {
             td { "{racer.last_name}" }
             td { "{racer.track}" }
             td { "{format_time(racer.start)}" }
-            td { "{format_time(racer.finish)}" }
+            td { width: "124px",
+                TimeInput {
+                    time: racer.finish,
+                    editing,
+                    onsave: move |time| {
+                        use_coroutine_handle::<Action>()
+                            .send(Action::FinishByStartNumber(start_number.clone(), time));
+                    },
+                }
+            }
             td { "{format_time_delta(racer.time)}" }
             td { "{racer.track_rank.map(|rank| rank.to_string()).unwrap_or_default() }" }
             td {

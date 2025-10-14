@@ -267,7 +267,7 @@ impl Race {
     pub fn finish_start_number(&mut self, start_number: StartNumber, time: DateTime<Utc>) {
         if self
             .finish(
-                |r| r.start_number == start_number && r.start.is_some() && r.finish.is_none(),
+                |r| r.start_number == start_number && r.start.is_some(),
                 time,
             )
             .is_err()
