@@ -66,6 +66,7 @@ if __name__ == "__main__":
     from dataclasses import dataclass
     from app import registrations
     import asyncio
+    import argparse
 
     @dataclass
     class RacerWithRFID:
@@ -128,11 +129,15 @@ if __name__ == "__main__":
             return await session.prompt_async(self.create_prompt_text)
 
     async def main():
+        p = argparse.ArgumentParser()
+        p.add_argument("race_id", nargs="?", default=3, type=int)
+        args = p.parse_args()
+
         racers = [
             RacerWithRFID(
                 racer.startNumber, racer.firstName, racer.lastName, racer.tagId
             )
-            for racer in registrations(0)
+            for racer in registrations(args.race_id)
             if racer.startNumber and racer.tagId
         ]
 
