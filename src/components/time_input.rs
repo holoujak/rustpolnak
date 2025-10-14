@@ -25,10 +25,12 @@ pub fn TimeInput(
     let mut text = use_signal(|| "".to_string());
 
     use_effect(move || {
-        text.set(match time {
-            Some(start) => format_time(start),
-            None => "".to_string(),
-        });
+        if editing() {
+            text.set(match time {
+                Some(start) => format_time(start),
+                None => "".to_string(),
+            });
+        }
     });
 
     rsx! {
