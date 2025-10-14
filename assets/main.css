@@ -1,6 +1,8 @@
 body {
     padding: 4px;
     overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 th {
