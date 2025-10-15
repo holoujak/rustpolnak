@@ -4,7 +4,7 @@ use chrono_tz::Europe::Prague;
 use serde::{de::DeserializeOwned, Deserialize, Deserializer, Serialize, Serializer};
 use std::cmp::Ordering;
 
-const DATE_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.f";
+const DATE_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.6f";
 
 #[derive(Debug, Deserialize, Clone, PartialEq)]
 pub struct Race {
