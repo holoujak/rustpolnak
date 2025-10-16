@@ -246,6 +246,7 @@ impl Race {
                 self.log.borrow_mut().log_start(&track, time);
             }
         }
+        self.track_starts.insert(track, time);
     }
 
     fn finish<F>(&mut self, mut predicate: F, time: Option<DateTime<Utc>>) -> Result<(), ()>
