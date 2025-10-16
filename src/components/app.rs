@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 use futures_util::StreamExt;
 use tokio::sync::broadcast;
-use tracing::{info, trace};
+use tracing::{error, info, trace};
 
 use crate::{
     components::{
@@ -27,10 +27,45 @@ pub enum Action {
     FinishByStartNumber(StartNumber, Option<DateTime<Utc>>),
 }
 
-fn handle_rfid_event(selected_race: &mut Signal<SelectedRace>, event: rfid_reader::Event) {
+struct RFIDDevices {
+    devices: HashMap<String, bool>,
+}
+
+impl RFIDDevices {
+    fn new(devices: &[String]) -> Self {
+        Self {
+            devices: devices
+                .iter()
+                .map(|device| (device.clone(), false))
+                .collect(),
+        }
+    }
+
+    fn set(&mut self, device: &str, connected_now: bool) {
+        if let Some(connected) = self.devices.get_mut(device) {
+            *connected = connected_now;
+        } else {
+            error!("RFID {device} does not exist!");
+        }
+    }
+
+    fn is_ok(&self) -> bool {
+        self.devices.iter().all(|(_, connected)| *connected)
+    }
+}
+
+fn handle_rfid_event(
+    selected_race: &mut Signal<SelectedRace>,
+    devices: &mut Signal<RFIDDevices>,
+    event: rfid_reader::Event,
+) {
     match event {
-        rfid_reader::Event::Connected(device) => info!("RFID {device} connected"),
+        rfid_reader::Event::Connected(device) => {
+            devices.write().set(&device, true);
+            info!("RFID {device} connected");
+        }
         rfid_reader::Event::Disconnected { device, error } => {
+            devices.write().set(&device, false);
             info!("RFID {device} disconnected: {error:?}")
         }
         rfid_reader::Event::Tag(tag) => {
@@ -70,6 +105,7 @@ pub fn App() -> Element {
     let mut show_starts = use_signal(|| true);
     let results_output_path =
         PathBuf::from(shellexpand::tilde(&config.results_path.clone()).to_string());
+    let mut rfid_devices = use_signal(|| RFIDDevices::new(&config.rfid_devices));
 
     use_coroutine(move |mut actions_rx: UnboundedReceiver<Action>| {
         let config = config.clone();
@@ -83,7 +119,7 @@ pub fn App() -> Element {
                 tokio::select! {
                     Ok(rfid_event) = rfid_rx.recv() => {
                         println!("{rfid_event:?}");
-                       handle_rfid_event(&mut selected_race, rfid_event);
+                       handle_rfid_event(&mut selected_race, &mut rfid_devices, rfid_event);
                     }
                     Some(action) = actions_rx.next() => {
                         println!("{action:?}");
@@ -111,6 +147,11 @@ pub fn App() -> Element {
                     },
                 }
                 RacesList { selected_race }
+                span {
+                    class: "btn",
+                    class: if rfid_devices.read().is_ok() { "btn-success" } else { "btn-danger" },
+                    dangerous_inner_html: iconify::svg!("ri:rfid-line"),
+                }
                 match race {
                     Some(race) => rsx! {
                         UploadResults { race: race.clone() }
