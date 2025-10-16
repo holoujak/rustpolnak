@@ -24,7 +24,7 @@ const LOADING: Asset = asset!("/assets/loading.webp");
 #[derive(Debug)]
 pub enum Action {
     Start(Track, DateTime<Utc>),
-    FinishByStartNumber(StartNumber, DateTime<Utc>),
+    FinishByStartNumber(StartNumber, Option<DateTime<Utc>>),
 }
 
 fn handle_rfid_event(selected_race: &mut Signal<SelectedRace>, event: rfid_reader::Event) {
@@ -37,7 +37,7 @@ fn handle_rfid_event(selected_race: &mut Signal<SelectedRace>, event: rfid_reade
             info!("Tag {tag}");
             selected_race.with_mut(|maybe_race| {
                 if let Some(Ok(race)) = maybe_race {
-                    race.tag_finished(&tag, Utc::now());
+                    race.tag_finished(&tag, Some(Utc::now()));
                 }
             });
         }
