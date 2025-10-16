@@ -10,7 +10,15 @@ pub fn format_time(datetime: Option<DateTime<Utc>>) -> String {
     }
 }
 
-pub fn format_time_delta(delta: Option<TimeDelta>) -> String {
+pub fn format_time_delta_millis(delta: Option<TimeDelta>) -> String {
+    format_time_delta(delta, true)
+}
+
+pub fn format_time_delta_secs(delta: Option<TimeDelta>) -> String {
+    format_time_delta(delta, false)
+}
+
+fn format_time_delta(delta: Option<TimeDelta>, with_ms: bool) -> String {
     let delta = match delta {
         Some(delta) => delta,
         _ => return "".to_string(),
@@ -22,5 +30,9 @@ pub fn format_time_delta(delta: Option<TimeDelta>) -> String {
     let secs = (total_millis / 1000) % 60;
     let millis = total_millis % 1000;
 
-    format!("{hours:02}:{mins:02}:{secs:02}.{millis:03}")
+    if with_ms {
+        format!("{hours:02}:{mins:02}:{secs:02}.{millis:03}")
+    } else {
+        format!("{hours:02}:{mins:02}:{secs:02}")
+    }
 }

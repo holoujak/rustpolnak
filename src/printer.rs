@@ -1,5 +1,5 @@
 use crate::race::{Race, Racer};
-use crate::time_utils::format_time_delta;
+use crate::time_utils::format_time_delta_millis;
 use std::path::PathBuf;
 use tracing::{error, info};
 
@@ -112,7 +112,7 @@ fn print_tracks(doc: &mut Document, race: &Race) {
                 .element(elements::Paragraph::new(format!("{}", racer.start_number)).padded(1))
                 .element(elements::Paragraph::new(&racer.first_name).padded(1))
                 .element(elements::Paragraph::new(&racer.last_name).padded(1))
-                .element(elements::Paragraph::new(format_time_delta(racer.time)).padded(1))
+                .element(elements::Paragraph::new(format_time_delta_millis(racer.time)).padded(1))
                 .element(
                     elements::Paragraph::new(format!("{}", racer.track_rank.unwrap_or_default()))
                         .padded(1),
@@ -153,7 +153,7 @@ fn print_categories(doc: &mut Document, race: &Race) {
                 .element(elements::Paragraph::new(format!("{}", racer.start_number)).padded(1))
                 .element(elements::Paragraph::new(&racer.first_name).padded(1))
                 .element(elements::Paragraph::new(&racer.last_name).padded(1))
-                .element(elements::Paragraph::new(format_time_delta(racer.time)).padded(1))
+                .element(elements::Paragraph::new(format_time_delta_millis(racer.time)).padded(1))
                 .element(
                     elements::Paragraph::new(format!("{}", racer.categories_rank[category]))
                         .padded(1),
