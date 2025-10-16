@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::components::app::Action;
 use crate::components::time_input::TimeInput;
 use crate::race::Racer;
-use crate::time_utils::{format_time, format_time_delta};
+use crate::time_utils::{format_time, format_time_delta_millis};
 
 #[component]
 pub fn RacerRow(racer: Racer) -> Element {
@@ -28,7 +28,7 @@ pub fn RacerRow(racer: Racer) -> Element {
                     },
                 }
             }
-            td { "{format_time_delta(racer.time)}" }
+            td { "{format_time_delta_millis(racer.time)}" }
             td { "{racer.track_rank.map(|rank| rank.to_string()).unwrap_or_default() }" }
             td {
                 for category in racer.categories.clone() {

@@ -7,7 +7,7 @@ use crate::{
         th::{Sorter, Th},
     },
     race::{Category, Race, Racer, RacerField},
-    time_utils::{format_time, format_time_delta},
+    time_utils::{format_time, format_time_delta_millis},
 };
 
 // Checks whether a racer matches all active filters in the map.
@@ -82,7 +82,7 @@ fn matches_filters(
                 }
             }
             RacerField::Time => {
-                if !format_time_delta(racer.time)
+                if !format_time_delta_millis(racer.time)
                     .to_lowercase()
                     .contains(&filter_lowercase)
                 {
