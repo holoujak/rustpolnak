@@ -243,9 +243,9 @@ impl Race {
         for racer in self.racers.iter_mut() {
             if racer.track == track {
                 racer.start = Some(time);
-                self.log.borrow_mut().log_start(&track, time);
             }
         }
+        self.log.borrow_mut().log_start(&track, time);
         self.track_starts.insert(track, time);
     }
 
