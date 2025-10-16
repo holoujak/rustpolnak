@@ -24,7 +24,8 @@ const LOADING: Asset = asset!("/assets/loading.webp");
 #[derive(Debug)]
 pub enum Action {
     Start(Track, DateTime<Utc>),
-    FinishByStartNumber(StartNumber, Option<DateTime<Utc>>),
+    FinishByStartNumber(StartNumber, DateTime<Utc>),
+    FinishEdit(StartNumber, Option<DateTime<Utc>>),
 }
 
 struct RFIDDevices {
@@ -92,6 +93,13 @@ fn handle_action(selected_race: &mut Signal<SelectedRace>, action: Action) {
             selected_race.with_mut(|maybe_race| {
                 if let Some(Ok(race)) = maybe_race {
                     race.finish_start_number(starting_number, time);
+                }
+            });
+        }
+        Action::FinishEdit(starting_number, time) => {
+            selected_race.with_mut(|maybe_race| {
+                if let Some(Ok(race)) = maybe_race {
+                    race.edit_finish_start_number(starting_number, time);
                 }
             });
         }

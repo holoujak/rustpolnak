@@ -255,14 +255,6 @@ impl Race {
     {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
 
-        if racer.finish.is_some() && time.is_some() {
-            error!(
-                "Racer with starting number {} already has a finish time.",
-                racer.start_number
-            );
-            return Err(());
-        }
-
         racer.finish = time;
         racer.time = calculate_time(racer.start, racer.finish);
 
@@ -280,11 +272,26 @@ impl Race {
         Ok(())
     }
 
-    pub fn finish_start_number(&mut self, start_number: StartNumber, time: Option<DateTime<Utc>>) {
+    pub fn edit_finish_start_number(
+        &mut self,
+        start_number: StartNumber,
+        time: Option<DateTime<Utc>>,
+    ) {
         if self
             .finish(
                 |r| r.start_number == start_number && r.start.is_some(),
                 time,
+            )
+            .is_err()
+        {
+            error!("Racer with starting number {start_number:?} not found.");
+        }
+    }
+    pub fn finish_start_number(&mut self, start_number: StartNumber, time: DateTime<Utc>) {
+        if self
+            .finish(
+                |r| r.start_number == start_number && r.start.is_some() && r.finish.is_none(),
+                Some(time),
             )
             .is_err()
         {
