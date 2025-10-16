@@ -21,9 +21,10 @@ pub fn RacerRow(racer: Racer) -> Element {
                 TimeInput {
                     time: racer.finish,
                     editing,
+                    remove_button: true,
                     onsave: move |time| {
                         use_coroutine_handle::<Action>()
-                            .send(Action::FinishByStartNumber(start_number.clone(), time));
+                            .send(Action::FinishByStartNumber(start_number.clone(), time, Some(true)));
                     },
                 }
             }

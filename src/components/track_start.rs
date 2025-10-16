@@ -22,8 +22,10 @@ pub fn TrackStart(track: Track, start: Option<DateTime<Utc>>) -> Element {
                 time: start,
                 editing,
                 span_class: "input-group-text flex-grow-1",
-                onsave: move |time| {
-                    use_coroutine_handle::<Action>().send(Action::Start(track.clone(), time));
+                onsave: move |time_option| {
+                    if let Some(time) = time_option {
+                        use_coroutine_handle::<Action>().send(Action::Start(track.clone(), time));
+                    }
                 },
             }
             button {

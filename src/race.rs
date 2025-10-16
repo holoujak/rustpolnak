@@ -9,7 +9,7 @@ use std::fmt;
 use std::num::ParseIntError;
 use std::rc::Rc;
 use std::str::FromStr;
-use tracing::error;
+use tracing::{error, info};
 
 use crate::race_events::RaceEvents;
 use crate::restclient::RaceRestAPI;
@@ -246,16 +246,36 @@ impl Race {
                 self.log.borrow_mut().log_start(&track, time);
             }
         }
-        self.track_starts.insert(track, time);
     }
 
-    fn finish<F>(&mut self, mut predicate: F, time: DateTime<Utc>) -> Result<(), ()>
+    fn finish<F>(
+        &mut self,
+        mut predicate: F,
+        time: Option<DateTime<Utc>>,
+        overwrite: Option<bool>,
+    ) -> Result<(), ()>
     where
         F: for<'a> FnMut(&&'a mut Racer) -> bool,
     {
         let racer = self.racers.iter_mut().find(|r| predicate(r)).ok_or(())?;
-        racer.finish = Some(time);
+
+        if racer.finish.is_some() && time.is_some() && overwrite != Some(true) {
+            error!(
+                "Racer with starting number {} already has a finish time.",
+                racer.start_number
+            );
+            return Err(());
+        }
+
+        racer.finish = time;
         racer.time = calculate_time(racer.start, racer.finish);
+
+        if racer.finish.is_none() {
+            info!("Removing finish time for racer {}", racer.start_number);
+            racer.track_rank = None;
+            racer.categories_rank.clear();
+        }
+
         self.log
             .borrow_mut()
             .log_finish(racer.start_number.clone(), time);
@@ -264,11 +284,17 @@ impl Race {
         Ok(())
     }
 
-    pub fn finish_start_number(&mut self, start_number: StartNumber, time: DateTime<Utc>) {
+    pub fn finish_start_number(
+        &mut self,
+        start_number: StartNumber,
+        time: Option<DateTime<Utc>>,
+        overwrite: Option<bool>,
+    ) {
         if self
             .finish(
                 |r| r.start_number == start_number && r.start.is_some(),
                 time,
+                overwrite,
             )
             .is_err()
         {
@@ -276,11 +302,12 @@ impl Race {
         }
     }
 
-    pub fn tag_finished(&mut self, tag: &str, time: DateTime<Utc>) {
+    pub fn tag_finished(&mut self, tag: &str, time: Option<DateTime<Utc>>) {
         if self
             .finish(
                 |r| r.tag == tag && r.start.is_some() && r.finish.is_none(),
                 time,
+                Some(false),
             )
             .is_err()
         {

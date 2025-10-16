@@ -16,7 +16,7 @@ use crate::race::Track;
 #[derive(Debug, Deserialize, Serialize)]
 struct RacerFinish {
     start_number: StartNumber,
-    finish: DateTime<Utc>,
+    finish: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -71,7 +71,7 @@ impl RaceEvents {
         }
     }
 
-    pub fn log_finish(&mut self, start_number: StartNumber, finish: DateTime<Utc>) {
+    pub fn log_finish(&mut self, start_number: StartNumber, finish: Option<DateTime<Utc>>) {
         let line = serde_json::to_string(&Event {
             timestamp: Utc::now(),
             event: EventType::RacerFinish(RacerFinish {
@@ -134,7 +134,11 @@ fn load_events(
                 start_number,
                 finish,
             })) => {
-                finish_times.insert(start_number, finish);
+                if let Some(finish_time) = finish {
+                    finish_times.insert(start_number, finish_time);
+                } else {
+                    finish_times.remove(&start_number);
+                }
             }
             Ok(EventType::TrackStart(TrackStart { track, start })) => {
                 track_starts.insert(track, start);

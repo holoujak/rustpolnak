@@ -20,8 +20,9 @@ fn format_time(time: DateTime<Utc>) -> String {
 pub fn TimeInput(
     time: Option<DateTime<Utc>>,
     editing: Signal<bool>,
-    onsave: EventHandler<DateTime<Utc>>,
+    onsave: EventHandler<Option<DateTime<Utc>>>,
     span_class: Option<String>,
+    remove_button: Option<bool>,
 ) -> Element {
     let mut text = use_signal(|| "".to_string());
 
@@ -45,7 +46,7 @@ pub fn TimeInput(
                     if evt.key() == Key::Enter {
                         if let Some(parsed) = parse_time(&text()) {
                             editing.set(false);
-                            onsave(parsed);
+                            onsave(Some(parsed));
                         }
                     }
                 },
@@ -61,6 +62,15 @@ pub fn TimeInput(
                 },
                 if let Some(start) = time {
                     {format_time(start)}
+                    if let Some(true) = remove_button {
+                        button {
+                            class: "btn",
+                            onclick: move |_evt| {
+                                onsave(None);
+                            },
+                            dangerous_inner_html: iconify::svg!("mdi:delete"),
+                        }
+                    }
                 }
             }
         }

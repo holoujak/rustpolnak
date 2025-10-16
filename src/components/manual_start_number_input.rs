@@ -14,7 +14,13 @@ pub fn ManualStartNumberInput() -> Element {
                 event.prevent_default();
                 if let Ok(start_number) = start_number().parse() {
                     use_coroutine_handle::<Action>()
-                        .send(Action::FinishByStartNumber(start_number, Utc::now()));
+                        .send(
+                            Action::FinishByStartNumber(
+                                start_number,
+                                Some(Utc::now()),
+                                Some(false),
+                            ),
+                        );
                 }
                 start_number.set(String::from(""));
             },
