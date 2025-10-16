@@ -10,7 +10,7 @@ const DATE_TIME_FORMAT: &str = "%Y-%m-%d %H:%M:%S%.6f";
 pub struct Race {
     pub id: u32,
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
     #[serde(rename = "dateOfEvent", deserialize_with = "parse_dt")]
     pub date_of_event: DateTime<Utc>,
 }
@@ -41,7 +41,7 @@ pub struct Category {
 pub struct Track {
     pub id: u32,
     pub name: String,
-    pub description: String,
+    pub description: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
