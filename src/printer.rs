@@ -1,4 +1,4 @@
-use crate::race::{Race, Racer};
+use crate::race::{Category, Race, Racer};
 use crate::time_utils::format_time_delta_millis;
 use std::path::PathBuf;
 use tracing::{error, info};
@@ -30,6 +30,7 @@ pub fn print_result(race: &Race, output_file: PathBuf) -> Result<(), Box<dyn std
     print_heading(&mut doc, "Race results");
     print_tracks(&mut doc, race);
     print_categories(&mut doc, race);
+    print_winners(&mut doc, race);
 
     match doc.render_to_file(&output_file) {
         Ok(()) => {
@@ -125,43 +126,73 @@ fn print_tracks(doc: &mut Document, race: &Race) {
     }
 }
 
+fn print_category_table(
+    doc: &mut Document,
+    category: &Category,
+    racers: Vec<&Racer>,
+    limit: Option<usize>,
+) {
+    let mut finished = racers;
+
+    if finished.is_empty() {
+        return;
+    }
+
+    finished.sort_by(|a, b| a.categories_rank[category].cmp(&b.categories_rank[category]));
+
+    if let Some(limit) = limit {
+        finished.truncate(limit);
+    } else {
+        doc.push(elements::PageBreak::new());
+    }
+
+    let mut table = elements::TableLayout::new(vec![1, 2, 2, 2, 1]);
+
+    print_heading(doc, format!("Category: {}", category.0).as_str());
+    print_table_header(&mut table);
+
+    for racer in finished {
+        table
+            .row()
+            .element(elements::Paragraph::new(format!("{}", racer.start_number)).padded(1))
+            .element(elements::Paragraph::new(&racer.first_name).padded(1))
+            .element(elements::Paragraph::new(&racer.last_name).padded(1))
+            .element(elements::Paragraph::new(format_time_delta_millis(racer.time)).padded(1))
+            .element(
+                elements::Paragraph::new(format!("{}", racer.categories_rank[category])).padded(1),
+            )
+            .push()
+            .expect("Invalid table row");
+    }
+
+    doc.push(table);
+}
+
 fn print_categories(doc: &mut Document, race: &Race) {
     for category in &race.categories {
-        let mut finished: Vec<&Racer> = race
+        let finished: Vec<&Racer> = race
             .racers
             .iter()
             .filter(|r| r.categories.contains(category))
             .filter(|r| r.finish.is_some())
             .collect();
 
-        if finished.is_empty() {
-            continue;
-        }
+        print_category_table(doc, category, finished, None);
+    }
+}
 
-        finished.sort_by(|a, b| a.categories_rank[category].cmp(&b.categories_rank[category]));
+fn print_winners(doc: &mut Document, race: &Race) {
+    doc.push(elements::PageBreak::new());
+    print_heading(doc, "Winners");
 
-        doc.push(elements::PageBreak::new());
+    for category in &race.categories {
+        let finished: Vec<&Racer> = race
+            .racers
+            .iter()
+            .filter(|r| r.categories.contains(category))
+            .filter(|r| r.finish.is_some())
+            .collect();
 
-        let mut table = elements::TableLayout::new(vec![1, 2, 2, 2, 1]);
-
-        print_heading(doc, format!("Category: {}", category.0).as_str());
-        print_table_header(&mut table);
-
-        for racer in finished {
-            table
-                .row()
-                .element(elements::Paragraph::new(format!("{}", racer.start_number)).padded(1))
-                .element(elements::Paragraph::new(&racer.first_name).padded(1))
-                .element(elements::Paragraph::new(&racer.last_name).padded(1))
-                .element(elements::Paragraph::new(format_time_delta_millis(racer.time)).padded(1))
-                .element(
-                    elements::Paragraph::new(format!("{}", racer.categories_rank[category]))
-                        .padded(1),
-                )
-                .push()
-                .expect("Invalid table row");
-        }
-
-        doc.push(table);
+        print_category_table(doc, category, finished, Some(3));
     }
 }
