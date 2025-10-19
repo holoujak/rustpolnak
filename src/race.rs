@@ -49,6 +49,14 @@ impl fmt::Display for Track {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct TrackStats {
+    pub track: Track,
+    pub start: Option<DateTime<Utc>>,
+    pub racers: usize,
+    pub finished: usize,
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Race {
     pub id: u32,
@@ -237,11 +245,37 @@ impl Race {
         Ok(race)
     }
 
-    pub fn tracks_with_start(&self) -> Vec<(Track, Option<DateTime<Utc>>)> {
-        self.tracks
+    pub fn tracks_stats(&self) -> Vec<TrackStats> {
+        let mut tracks: HashMap<&Track, TrackStats> = self
+            .tracks
             .iter()
-            .map(|track| (track.clone(), self.track_starts.get(track).copied()))
-            .collect()
+            .map(|track| {
+                (
+                    track,
+                    TrackStats {
+                        track: track.clone(),
+                        start: self.track_starts.get(track).copied(),
+                        racers: 0,
+                        finished: 0,
+                    },
+                )
+            })
+            .collect();
+
+        for racer in self.racers.iter() {
+            if let Some(track) = tracks.get_mut(&racer.track) {
+                track.racers += 1;
+                if racer.finish.is_some() {
+                    track.finished += 1;
+                }
+            } else {
+                error!("Could not find track: {}", racer.track);
+            }
+        }
+
+        let mut tracks: Vec<TrackStats> = tracks.into_values().collect();
+        tracks.sort_by_key(|track_stats| track_sort_key(&track_stats.track));
+        tracks
     }
 
     pub fn start(&mut self, track: Track, time: DateTime<Utc>) {
@@ -396,6 +430,93 @@ mod tests {
         assert_eq!(
             (0, "Detska trat".to_string()),
             track_sort_key(&Track("Detska trat".to_string()))
+        );
+    }
+
+    #[test]
+    fn track_stats() {
+        let track_10km = Track("10 Km".to_string());
+        let track_4km = Track("4 Km".to_string());
+        let track_childs = Track("Detska trat".to_string());
+        let start = Utc::now();
+
+        let racers = vec![
+            Racer {
+                id: 22,
+                start_number: StartNumber(241),
+                tag: "tag2".into(),
+                first_name: "Bob".into(),
+                last_name: "Jones".into(),
+                track: track_4km.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: None,
+                time: None,
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+            Racer {
+                id: 1,
+                start_number: StartNumber(200),
+                tag: "tag2".into(),
+                first_name: "Bob".into(),
+                last_name: "Jones".into(),
+                track: track_10km.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: Some(start + chrono::Duration::seconds(15)),
+                time: None,
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+            Racer {
+                id: 2,
+                start_number: StartNumber(201),
+                tag: "tag2".into(),
+                first_name: "Bob".into(),
+                last_name: "Jones".into(),
+                track: track_4km.clone(),
+                categories: vec![],
+                start: Some(start),
+                finish: Some(start + chrono::Duration::seconds(15)),
+                time: None,
+                track_rank: None,
+                categories_rank: HashMap::new(),
+            },
+        ];
+
+        let race = Race {
+            id: 1,
+            racers,
+            categories: vec![],
+            tracks: vec![track_10km.clone(), track_4km.clone(), track_childs.clone()],
+            track_starts: HashMap::new(),
+            log: Rc::new(RefCell::new(RaceEvents::load(100000))),
+        };
+
+        let stats = race.tracks_stats();
+        assert_eq!(
+            stats,
+            vec![
+                TrackStats {
+                    track: track_childs,
+                    start: None,
+                    racers: 0,
+                    finished: 0
+                },
+                TrackStats {
+                    track: track_4km,
+                    start: None,
+                    racers: 2,
+                    finished: 1
+                },
+                TrackStats {
+                    track: track_10km,
+                    start: None,
+                    racers: 1,
+                    finished: 1
+                }
+            ]
         );
     }
 
