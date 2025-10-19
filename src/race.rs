@@ -89,6 +89,18 @@ pub enum RacerField {
     Time,
 }
 
+fn track_sort_key(track: &Track) -> (u32, String) {
+    match track
+        .0
+        .split_whitespace()
+        .next()
+        .and_then(|s| s.parse::<u32>().ok())
+    {
+        Some(distance) => (distance, track.0.clone()),
+        None => (0, track.0.clone()),
+    }
+}
+
 impl Racer {
     pub fn cmp_by(&self, other: &Self, field: RacerField) -> Ordering {
         match field {
@@ -147,14 +159,7 @@ fn extract_tracks(api_result: &[crate::restclient::Racer]) -> Vec<Track> {
         .into_iter()
         .collect();
 
-    tracks.sort_by_key(|track| {
-        track
-            .0
-            .split_whitespace()
-            .next()
-            .and_then(|s| s.parse::<u32>().ok())
-            .unwrap_or(0)
-    });
+    tracks.sort_by_key(track_sort_key);
     tracks
 }
 
@@ -377,6 +382,22 @@ impl Race {
 #[cfg(test)]
 mod tests {
     use crate::race::*;
+
+    #[test]
+    fn track_sort() {
+        assert_eq!(
+            (4, "4 Km".to_string()),
+            track_sort_key(&Track("4 Km".to_string()))
+        );
+        assert_eq!(
+            (10, "10 Km".to_string()),
+            track_sort_key(&Track("10 Km".to_string()))
+        );
+        assert_eq!(
+            (0, "Detska trat".to_string()),
+            track_sort_key(&Track("Detska trat".to_string()))
+        );
+    }
 
     #[test]
     fn test_calculate_track_rank() {
