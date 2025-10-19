@@ -87,12 +87,7 @@ fn print_table_header(table: &mut elements::TableLayout) {
 
 fn print_tracks(doc: &mut Document, race: &Race) {
     for track in &race.tracks {
-        let mut finished: Vec<&Racer> = race
-            .racers
-            .iter()
-            .filter(|r| r.track == *track)
-            .filter(|r| r.finish.is_some())
-            .collect();
+        let mut finished = race.get_finished_racers_by_track(track);
 
         if finished.is_empty() {
             continue;
@@ -170,12 +165,7 @@ fn print_category_table(
 
 fn print_categories(doc: &mut Document, race: &Race) {
     for category in &race.categories {
-        let finished: Vec<&Racer> = race
-            .racers
-            .iter()
-            .filter(|r| r.categories.contains(category))
-            .filter(|r| r.finish.is_some())
-            .collect();
+        let finished = race.get_finished_racers_by_category(category);
 
         print_category_table(doc, category, finished, None);
     }
@@ -186,12 +176,7 @@ fn print_winners(doc: &mut Document, race: &Race) {
     print_heading(doc, "Winners");
 
     for category in &race.categories {
-        let finished: Vec<&Racer> = race
-            .racers
-            .iter()
-            .filter(|r| r.categories.contains(category))
-            .filter(|r| r.finish.is_some())
-            .collect();
+        let finished = race.get_finished_racers_by_category(category);
 
         print_category_table(doc, category, finished, Some(3));
     }

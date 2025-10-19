@@ -411,6 +411,30 @@ impl Race {
             r.track_rank = Some(rank);
         }
     }
+
+    pub fn get_finished_racers_by_track(&self, track: &Track) -> Vec<&Racer> {
+        let mut finished: Vec<&Racer> = self
+            .racers
+            .iter()
+            .filter(|r| r.track == *track)
+            .filter(|r| r.finish.is_some())
+            .collect();
+
+        finished.sort_by(|a, b| a.track_rank.cmp(&b.track_rank));
+        finished
+    }
+
+    pub fn get_finished_racers_by_category(&self, category: &Category) -> Vec<&Racer> {
+        let mut finished: Vec<&Racer> = self
+            .racers
+            .iter()
+            .filter(|r| r.categories.contains(category))
+            .filter(|r| r.finish.is_some())
+            .collect();
+
+        finished.sort_by(|a, b| a.categories_rank[category].cmp(&b.categories_rank[category]));
+        finished
+    }
 }
 
 #[cfg(test)]
