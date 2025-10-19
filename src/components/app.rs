@@ -9,7 +9,7 @@ use tracing::{error, info, trace};
 use crate::{
     components::{
         manual_start_number_input::ManualStartNumberInput, racers::Racers, races_list::RacesList,
-        track_start::TrackStart, upload_results::UploadResults,
+        track, upload_results::UploadResults,
     },
     config::Config,
     printer::print_result,
@@ -187,7 +187,7 @@ pub fn App() -> Element {
                     if show_starts() {
                         div { class: "d-flex flex-column row-gap-1 mb-1",
                             for track in race.tracks_stats() {
-                                TrackStart { track }
+                                track::Track { track }
                             }
                         }
                     }

@@ -7,7 +7,7 @@ use dioxus::prelude::*;
 use crate::components::{app::Action, time_input::TimeInput};
 
 #[component]
-pub fn TrackStart(track: TrackStats) -> Element {
+pub fn Track(track: TrackStats) -> Element {
     let mut editing = use_signal(|| false);
     let track2 = track.track.clone();
     let time_since_start = use_signal(|| None);
