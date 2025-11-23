@@ -1,7 +1,6 @@
-name: Build
+name: Build and test
 
-on:
-  push:
+on: [push]
 
 env:
   CARGO_TERM_COLOR: always
@@ -10,34 +9,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
-    - run: sudo apt update
-    - run: sudo apt install libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev libudev-dev libxdo-dev
-    - uses: Swatinem/rust-cache@v2
-    - run: cargo build --profile release
-    - run: cargo test --profile release
-    - uses: actions/upload-artifact@v4
-      with:
-        name: rustpolnak
-        path: target/release/rustpolnak
-        if-no-files-found: error
-    - uses: softprops/action-gh-release@v2
-      if: startsWith(github.ref, 'refs/tags/')
-      with:
-        files: target/release/rustpolnak
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-devenv
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: Swatinem/rust-cache@v2
+      - name: test the app
+        run: devenv shell test-app
+      - uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: target/release/rustpolnak
 
   precommit:
     runs-on: ubuntu-latest
     steps:
-    - run: sudo apt update
-    - run: sudo apt install libgtk-3-dev libsoup-3.0-dev libjavascriptcoregtk-4.1-dev libwebkit2gtk-4.1-dev libudev-dev libxdo-dev
-    - run: |
-        curl -L "https://github.com/DioxusLabs/dioxus/releases/download/v0.6.3/dx-x86_64-unknown-linux-gnu-v0.6.3.tar.gz" -o dx.tar.gz
-        tar -xzf dx.tar.gz
-        sudo mv dx /usr/local/bin/
-        dx --version
-    - uses: actions/checkout@v5
-    - uses: actions/setup-python@v6
-    - uses: pre-commit/action@v3.0.1
-      with:
-        extra_args: --all-files
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-devenv
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - uses: actions/setup-python@v6
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files

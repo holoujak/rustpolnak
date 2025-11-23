@@ -1,0 +1,23 @@
+name: Setup devenv and cachix
+description: Install devenv and cachix
+
+inputs:
+  GITHUB_TOKEN:
+    required: true
+  CACHIX_AUTH_TOKEN:
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: cachix/install-nix-action@v31
+      with:
+        github_access_token: ${{ inputs.GITHUB_TOKEN }}
+    - uses: cachix/cachix-action@v16
+      with:
+        # https://app.cachix.org/cache/rustpolnak
+        name: rustpolnak
+        authToken: "${{ inputs.CACHIX_AUTH_TOKEN }}"
+    - name: install devenv
+      shell: bash
+      run: nix profile add nixpkgs#devenv
