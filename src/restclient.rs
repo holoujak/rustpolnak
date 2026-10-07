@@ -120,7 +120,14 @@ pub struct RaceRestAPI {
 impl RaceRestAPI {
     pub fn new(url: &str, username: &str, password: &str) -> Self {
         RaceRestAPI {
-            client: Default::default(),
+            client: reqwest::Client::builder()
+                .user_agent(concat!(
+                    env!("CARGO_PKG_NAME"),
+                    "/",
+                    env!("CARGO_PKG_VERSION")
+                ))
+                .build()
+                .expect("failed to build HTTP client"),
             url: url.to_string(),
             username: username.to_string(),
             password: password.to_string(),
