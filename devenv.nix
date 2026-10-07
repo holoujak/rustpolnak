@@ -23,6 +23,7 @@ in
     glib
     gtk3
     git
+    pre-commit
     tk
     webkitgtk_4_1
     xdotool
