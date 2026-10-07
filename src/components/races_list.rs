@@ -21,7 +21,7 @@ pub fn RacesList(selected_race: SignalRace) -> Element {
             let api = api.clone();
             async move {
                 let mut races = api.races().await?;
-                races.sort_by(|a, b| b.date_of_event.cmp(&a.date_of_event));
+                races.sort_by_key(|a| std::cmp::Reverse(a.date_of_event));
 
                 if let Some(earliest_race) = races.first() {
                     load_race(api, selected_race, earliest_race.id).await;

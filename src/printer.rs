@@ -93,7 +93,7 @@ fn print_tracks(doc: &mut Document, race: &Race) {
             continue;
         }
 
-        finished.sort_by(|a, b| a.track_rank.cmp(&b.track_rank));
+        finished.sort_by_key(|a| a.track_rank);
 
         doc.push(elements::PageBreak::new());
 
